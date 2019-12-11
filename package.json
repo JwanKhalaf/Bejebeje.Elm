@@ -1,0 +1,29 @@
+{
+  "name": "bejebeje.elm",
+  "version": "1.0.0",
+  "description": "The Elm frontend for Bejebeje",
+  "main": "index.js",
+  "scripts": {
+    "build": "parcel src/index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JwanKhalaf/Bejebeje.Elm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JwanKhalaf/Bejebeje.Elm/issues"
+  },
+  "homepage": "https://github.com/JwanKhalaf/Bejebeje.Elm#readme",
+  "devDependencies": {
+    "elm-hot": "^1.1.4",
+    "node-elm-compiler": "^5.0.4",
+    "parcel-bundler": "^1.12.4",
+    "sass": "^1.23.7"
+  },
+  "dependencies": {
+    "app": "^0.1.0"
+  }
+}
