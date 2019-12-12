@@ -1,3 +1,22 @@
+@import "./reset";
+@import "./mixins";
+@import "./variables";
+
 body {
-  background-color: firebrick;
+  background-color: $dark-grey;
+  padding: 1.25em;
+}
+
+.logo {
+  @include fontSize(2.5);
+  font-family: $satisfy;
+  color: $white;
+  font-weight: 100;
+}
+
+.logo__letter {
+  @include fontSize(2.5);
+  font-family: $satisfy;
+  color: $red;
+  font-weight: 100;
 }
