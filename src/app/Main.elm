@@ -43,7 +43,7 @@ init _ url key =
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
-    | Searched String
+    | SearchQueryChanged String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -62,7 +62,7 @@ update msg model =
             , Cmd.none
             )
 
-        Searched searchTerm ->
+        SearchQueryChanged searchTerm ->
             ( { model | searchTerm = searchTerm }, Cmd.none )
 
 
@@ -87,7 +87,7 @@ view model =
         , main_ [] [ p [ class "bb-p" ] [ text ("You'll be searching for: " ++ model.searchTerm) ] ]
         , footer []
             [ div [ class "search" ]
-                [ input [ class "search__input", placeholder "Search for artist or lyric", value model.searchTerm, onInput Searched ] []
+                [ input [ class "search__input", placeholder "Search for artist or lyric", value model.searchTerm, onInput SearchQueryChanged ] []
                 ]
             ]
         ]
