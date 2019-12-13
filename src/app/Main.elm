@@ -83,11 +83,27 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "URL Interceptor"
     , body =
-        [ header [] [ div [ class "logo" ] [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ] ]
-        , main_ [] [ p [ class "bb-p" ] [ text ("You'll be searching for: " ++ model.searchTerm) ] ]
+        [ header []
+            [ div
+                [ class "logo" ]
+                [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
+            ]
+        , main_ []
+            [ div [ class "quote" ]
+                [ p [ class "quote__text" ]
+                    [ text "Those who wish to sing always find a song." ]
+                , p [ class "quote__author" ]
+                    [ text "Swedish proverb" ]
+                ]
+            , p
+                [ class "bb-p" ]
+                [ text ("You'll be searching for: " ++ model.searchTerm) ]
+            ]
         , footer []
             [ div [ class "search" ]
-                [ input [ class "search__input", placeholder "Search for artist or lyric", value model.searchTerm, onInput SearchQueryChanged ] []
+                [ input
+                    [ class "search__input", placeholder "Search for artist or lyric", value model.searchTerm, onInput SearchQueryChanged ]
+                    []
                 ]
             ]
         ]

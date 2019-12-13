@@ -49,3 +49,26 @@ header {
 .bb-p {
   color: $white;
 }
+
+main {
+  display: flex;
+  flex-direction: column;
+}
+
+.quote {
+  margin: 0 0 1em 0;
+}
+
+.quote__text {
+  color: rgba($white, 0.85);
+  @include fontSize(1.2);
+  font-family: $lora;
+  margin: 0 0 1em 0;
+}
+
+.quote__author {
+  color: $red;
+  font-family: $opensans;
+  @include fontSize(1.2);
+  font-weight: 700;
+}
