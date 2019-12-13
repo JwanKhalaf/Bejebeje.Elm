@@ -2,8 +2,9 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Html exposing (h1, span, text)
-import Html.Attributes exposing (class)
+import Html exposing (div, footer, h1, header, input, main_, p, span, text)
+import Html.Attributes exposing (class, placeholder, value)
+import Html.Events exposing (onInput)
 import Url
 
 
@@ -26,12 +27,13 @@ main =
 type alias Model =
     { key : Nav.Key
     , url : Url.Url
+    , searchTerm : String
     }
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key url, Cmd.none )
+    ( Model key url "", Cmd.none )
 
 
 
@@ -41,6 +43,7 @@ init _ url key =
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
+    | Searched String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -58,6 +61,9 @@ update msg model =
             ( { model | url = url }
             , Cmd.none
             )
+
+        Searched searchTerm ->
+            ( { model | searchTerm = searchTerm }, Cmd.none )
 
 
 
@@ -77,6 +83,12 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "URL Interceptor"
     , body =
-        [ h1 [ class "logo" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ]
+        [ header [] [ div [ class "logo" ] [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ] ]
+        , main_ [] [ p [ class "bb-p" ] [ text ("You'll be searching for: " ++ model.searchTerm) ] ]
+        , footer []
+            [ div [ class "search" ]
+                [ input [ class "search__input", placeholder "Search for artist or lyric", value model.searchTerm, onInput Searched ] []
+                ]
+            ]
         ]
     }

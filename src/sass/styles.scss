@@ -2,12 +2,23 @@
 @import "./mixins";
 @import "./variables";
 
+html {
+  height: 100%;
+}
+
 body {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   background-color: $dark-grey;
   padding: 1.25em;
 }
 
-.logo {
+header {
+  margin: 0 0 1em 0;
+}
+
+.logo__text {
   @include fontSize(2.5);
   font-family: $satisfy;
   color: $white;
@@ -19,4 +30,22 @@ body {
   font-family: $satisfy;
   color: $red;
   font-weight: 100;
+}
+
+.search {
+  background-color: $light-grey;
+  padding: 1.2em;
+  border-radius: 2px;
+}
+
+.search__input {
+  padding: 0.4em 0.8em;
+  width: 100%;
+  border-radius: 2px;
+  background-color: $dark-grey;
+  color: rgba($white, 0.6);
+}
+
+.bb-p {
+  color: $white;
 }
