@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Html exposing (div, footer, h1, header, input, main_, p, span, text)
+import Html exposing (Html, div, footer, h1, header, input, main_, p, span, text)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onInput)
 import Http exposing (expectJson, get)
@@ -114,9 +114,7 @@ view model =
                 , p [ class "quote__author" ]
                     [ text "Swedish proverb" ]
                 ]
-            , p
-                [ class "bb-p" ]
-                [ text ("You'll be searching for: " ++ model.searchTerm) ]
+            , viewArtists model.retrievedArtists
             ]
         , footer []
             [ div [ class "search" ]
@@ -127,6 +125,16 @@ view model =
             ]
         ]
     }
+
+
+viewArtists : List Artist -> Html Msg
+viewArtists retrievedArtists =
+    case retrievedArtists of
+        [] ->
+            text "no matched artists"
+
+        _ ->
+            text "there are artists"
 
 
 
