@@ -2,11 +2,11 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Html exposing (Html, div, footer, h1, header, input, main_, p, span, text)
-import Html.Attributes exposing (class, placeholder, value)
+import Html exposing (Html, div, footer, h1, header, img, input, main_, p, span, text)
+import Html.Attributes exposing (class, placeholder, src, value)
 import Html.Events exposing (onInput)
 import Http exposing (expectJson, get)
-import Json.Decode exposing (Decoder, field, int, list, map3, string)
+import Json.Decode exposing (Decoder, andThen, bool, fail, field, int, list, map2, map3, string, succeed)
 import Url
 
 
@@ -26,10 +26,20 @@ main =
 -- model
 
 
+type alias Slug =
+    String
+
+
 type alias Artist =
     { firstName : String
     , lastName : String
-    , imageId : Int
+    , slug : Slug
+    }
+
+
+type alias ArtistSlug =
+    { name : String
+    , isPrimary : Bool
     }
 
 
@@ -131,10 +141,21 @@ viewArtists : List Artist -> Html Msg
 viewArtists retrievedArtists =
     case retrievedArtists of
         [] ->
-            text "no matched artists"
+            p [ class "bb-p" ] [ text "no matched artists" ]
 
         _ ->
-            text "there are artists"
+            p [ class "bb-p" ] [ text "there are artists" ]
+
+
+viewArtist : Artist -> Html Msg
+viewArtist artist =
+    div
+        [ class "artist__result" ]
+        [ p
+            [ class "artist__name" ]
+            [ text (artist.firstName ++ " " ++ artist.lastName) ]
+        , img [ class "artist__image", src ("http://localhost:49973/artists/" ++ artist.slug ++ "/img") ] []
+        ]
 
 
 
@@ -144,9 +165,35 @@ viewArtists retrievedArtists =
 searchArtists : String -> Cmd Msg
 searchArtists searchTerm =
     Http.get
-        { url = "https://api.bejebeje.com/artists?name=" ++ searchTerm
+        { url = "http://localhost:49973/artists?name=" ++ searchTerm
         , expect = Http.expectJson ArtistsRetrieved artistListDecoder
         }
+
+
+decodeTest : Decoder Slug
+decodeTest =
+    list decodeArtistSlug
+        |> andThen
+            (\slugs ->
+                case getPrimarySlug slugs of
+                    Nothing ->
+                        fail "no primary slug"
+
+                    Just slug ->
+                        succeed slug.name
+            )
+
+
+decodeArtistSlug : Decoder ArtistSlug
+decodeArtistSlug =
+    map2 ArtistSlug
+        (field "slug" string)
+        (field "isPrimary" bool)
+
+
+decodeArtistSlugList : Decoder (List ArtistSlug)
+decodeArtistSlugList =
+    field "slugs" (list decodeArtistSlug)
 
 
 artistDecoder : Decoder Artist
@@ -154,9 +201,14 @@ artistDecoder =
     map3 Artist
         (field "firstName" string)
         (field "lastName" string)
-        (field "imageId" int)
+        (field "slug" decodeTest)
 
 
 artistListDecoder : Decoder (List Artist)
 artistListDecoder =
-    list artistDecoder
+    field "artists" (list artistDecoder)
+
+
+getPrimarySlug : List ArtistSlug -> Maybe ArtistSlug
+getPrimarySlug artistSlugs =
+    List.head (List.filter .isPrimary artistSlugs)
