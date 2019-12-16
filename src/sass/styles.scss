@@ -73,3 +73,24 @@ main {
   @include fontSize(1.2);
   font-weight: 700;
 }
+
+.artist__result {
+  display: flex;
+  align-items: center;
+  background-color: $light-grey;
+  border-radius: 3px;
+  padding: 1em;
+  margin: 0 0 1em 0;
+}
+
+.artist__name {
+  font-size: 1.2rem;
+  color: $white;
+}
+
+.artist__image {
+  border-radius: 50%;
+  border: 2px solid white;
+  width: 50px;
+  margin: 0 1em 0 0;
+}

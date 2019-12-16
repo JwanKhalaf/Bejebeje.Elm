@@ -6,7 +6,7 @@ import Html exposing (Html, div, footer, h1, header, img, input, main_, p, span,
 import Html.Attributes exposing (class, placeholder, src, value)
 import Html.Events exposing (onInput)
 import Http exposing (expectJson, get)
-import Json.Decode exposing (Decoder, andThen, bool, fail, field, int, list, map2, map3, string, succeed)
+import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
 import Url
 
 
@@ -141,20 +141,22 @@ viewArtists : List Artist -> Html Msg
 viewArtists retrievedArtists =
     case retrievedArtists of
         [] ->
-            p [ class "bb-p" ] [ text "no matched artists" ]
+            text ""
 
-        _ ->
-            p [ class "bb-p" ] [ text "there are artists" ]
+        artists ->
+            div
+                [ class "artist__list" ]
+                (List.map viewArtist artists)
 
 
 viewArtist : Artist -> Html Msg
 viewArtist artist =
     div
         [ class "artist__result" ]
-        [ p
+        [ img [ class "artist__image", src ("http://localhost:5010/artists/" ++ artist.slug ++ "/image") ] []
+        , p
             [ class "artist__name" ]
             [ text (artist.firstName ++ " " ++ artist.lastName) ]
-        , img [ class "artist__image", src ("http://localhost:49973/artists/" ++ artist.slug ++ "/img") ] []
         ]
 
 
@@ -165,7 +167,7 @@ viewArtist artist =
 searchArtists : String -> Cmd Msg
 searchArtists searchTerm =
     Http.get
-        { url = "http://localhost:49973/artists?name=" ++ searchTerm
+        { url = "http://localhost:5010/artists?name=" ++ searchTerm
         , expect = Http.expectJson ArtistsRetrieved artistListDecoder
         }
 
@@ -187,7 +189,7 @@ decodeTest =
 decodeArtistSlug : Decoder ArtistSlug
 decodeArtistSlug =
     map2 ArtistSlug
-        (field "slug" string)
+        (field "name" string)
         (field "isPrimary" bool)
 
 
@@ -201,7 +203,7 @@ artistDecoder =
     map3 Artist
         (field "firstName" string)
         (field "lastName" string)
-        (field "slug" decodeTest)
+        (field "slugs" decodeTest)
 
 
 artistListDecoder : Decoder (List Artist)
