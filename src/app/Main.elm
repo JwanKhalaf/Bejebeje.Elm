@@ -84,7 +84,11 @@ update msg model =
             )
 
         SearchQueryChanged searchTerm ->
-            ( { model | searchTerm = searchTerm }, searchArtists searchTerm )
+            if String.isEmpty searchTerm then
+                ( { model | searchTerm = searchTerm, retrievedArtists = [] }, Cmd.none )
+
+            else
+                ( { model | searchTerm = searchTerm }, searchArtists searchTerm )
 
         ArtistsRetrieved result ->
             case result of
@@ -118,14 +122,7 @@ view model =
                 [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
             ]
         , main_ []
-            [ div [ class "quote" ]
-                [ p [ class "quote__text" ]
-                    [ text "Those who wish to sing always find a song." ]
-                , p [ class "quote__author" ]
-                    [ text "Swedish proverb" ]
-                ]
-            , viewArtists model.retrievedArtists
-            ]
+            [ viewArtists model.retrievedArtists ]
         , footer []
             [ div [ class "search" ]
                 [ input
@@ -141,7 +138,12 @@ viewArtists : List Artist -> Html Msg
 viewArtists retrievedArtists =
     case retrievedArtists of
         [] ->
-            text ""
+            div [ class "quote" ]
+                [ p [ class "quote__text" ]
+                    [ text "Those who wish to sing always find a song." ]
+                , p [ class "quote__author" ]
+                    [ text "Swedish proverb" ]
+                ]
 
         artists ->
             div
