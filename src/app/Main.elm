@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
+import Endpoint exposing (Endpoint, request, searchArtists)
 import Html exposing (Html, div, footer, h1, header, img, input, main_, p, span, text)
 import Html.Attributes exposing (class, placeholder, src, value)
 import Html.Events exposing (onInput)
