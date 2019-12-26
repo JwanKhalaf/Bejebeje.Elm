@@ -21,7 +21,7 @@
     "elm-hot": "^1.1.4",
     "node-elm-compiler": "^5.0.4",
     "parcel-bundler": "^1.12.4",
-    "sass": "^1.23.7"
+    "sass": "^1.24.0"
   },
   "dependencies": {
     "app": "^0.1.0"

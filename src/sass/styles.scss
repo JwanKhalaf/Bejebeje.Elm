@@ -81,6 +81,11 @@ main {
   border-radius: 3px;
   padding: 1em;
   margin: 0 0 1em 0;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba($light-grey, 0.5);
+  }
 }
 
 .artist__name {

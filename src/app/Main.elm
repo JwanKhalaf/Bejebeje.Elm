@@ -175,9 +175,9 @@ searchArtists searchTerm =
         }
 
 
-decodeTest : Decoder Slug
-decodeTest =
-    list decodeArtistSlug
+artistSlugListDecoder : Decoder Slug
+artistSlugListDecoder =
+    list artistSlugDecoder
         |> andThen
             (\slugs ->
                 case getPrimarySlug slugs of
@@ -189,16 +189,11 @@ decodeTest =
             )
 
 
-decodeArtistSlug : Decoder ArtistSlug
-decodeArtistSlug =
+artistSlugDecoder : Decoder ArtistSlug
+artistSlugDecoder =
     map2 ArtistSlug
         (field "name" string)
         (field "isPrimary" bool)
-
-
-decodeArtistSlugList : Decoder (List ArtistSlug)
-decodeArtistSlugList =
-    field "slugs" (list decodeArtistSlug)
 
 
 artistDecoder : Decoder Artist
@@ -206,7 +201,7 @@ artistDecoder =
     map3 Artist
         (field "firstName" string)
         (field "lastName" string)
-        (field "slugs" decodeTest)
+        (field "slugs" artistSlugListDecoder)
 
 
 artistListDecoder : Decoder (List Artist)
