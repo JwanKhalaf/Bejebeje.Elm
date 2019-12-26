@@ -2,9 +2,9 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Endpoint exposing (request, searchArtistsEndpoint)
-import Html exposing (Html, div, footer, h1, header, img, input, main_, p, span, text)
-import Html.Attributes exposing (class, placeholder, src, value)
+import Endpoint exposing (artistLyricsEndpoint, request, searchArtistsEndpoint)
+import Html exposing (Html, a, div, footer, h1, header, img, input, main_, p, span, text)
+import Html.Attributes exposing (class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
@@ -38,6 +38,12 @@ type alias Artist =
     }
 
 
+type alias LyricListItem =
+    { title : String
+    , slug : String
+    }
+
+
 type alias ArtistSlug =
     { name : String
     , isPrimary : Bool
@@ -49,12 +55,13 @@ type alias Model =
     , url : Url.Url
     , searchTerm : String
     , retrievedArtists : List Artist
+    , retrievedLyrics : List LyricListItem
     }
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key url "" [], Cmd.none )
+    ( Model key url "" [] [], Cmd.none )
 
 
 
@@ -67,6 +74,8 @@ type Msg
     | SearchQueryChanged String
     | ArtistsRetrieved (Result Http.Error (List Artist))
     | ArtistClicked String
+    | LyricsRetrieved (Result Http.Error (List LyricListItem))
+    | LyricClicked String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -105,6 +114,21 @@ update msg model =
                 _ =
                     Debug.log "temp" (artistSlug ++ " clicked!")
             in
+            ( model, getLyricsForArtist artistSlug )
+
+        LyricsRetrieved result ->
+            case result of
+                Ok lyrics ->
+                    ( { model | retrievedLyrics = lyrics, retrievedArtists = [] }, Cmd.none )
+
+                Err _ ->
+                    ( { model | retrievedLyrics = [], retrievedArtists = [] }, Cmd.none )
+
+        LyricClicked lyricSlug ->
+            let
+                _ =
+                    Debug.log "temp" (lyricSlug ++ " clicked!")
+            in
             ( model, Cmd.none )
 
 
@@ -123,7 +147,7 @@ subscriptions _ =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "URL Interceptor"
+    { title = "Bêjebêje"
     , body =
         [ header []
             [ div
@@ -131,7 +155,7 @@ view model =
                 [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
             ]
         , main_ []
-            [ viewArtists model.retrievedArtists ]
+            [ showArtists model.retrievedArtists, showArtistLyricsList model.retrievedLyrics ]
         , footer []
             [ div [ class "search" ]
                 [ input
@@ -143,16 +167,21 @@ view model =
     }
 
 
-viewArtists : List Artist -> Html Msg
-viewArtists retrievedArtists =
+showQuote : Html Msg
+showQuote =
+    div [ class "quote" ]
+        [ p [ class "quote__text" ]
+            [ text "Those who wish to sing always find a song." ]
+        , p [ class "quote__author" ]
+            [ text "Swedish proverb" ]
+        ]
+
+
+showArtists : List Artist -> Html Msg
+showArtists retrievedArtists =
     case retrievedArtists of
         [] ->
-            div [ class "quote" ]
-                [ p [ class "quote__text" ]
-                    [ text "Those who wish to sing always find a song." ]
-                , p [ class "quote__author" ]
-                    [ text "Swedish proverb" ]
-                ]
+            showQuote
 
         artists ->
             div
@@ -162,12 +191,34 @@ viewArtists retrievedArtists =
 
 viewArtist : Artist -> Html Msg
 viewArtist artist =
-    div
-        [ class "artist__result", onClick (ArtistClicked artist.slug) ]
+    a
+        [ class "artist__result", href ("/artists/" ++ artist.slug ++ "/lyrics"), onClick (ArtistClicked artist.slug) ]
         [ img [ class "artist__image", src ("http://localhost:5010/artists/" ++ artist.slug ++ "/image") ] []
         , p
             [ class "artist__name" ]
             [ text (artist.firstName ++ " " ++ artist.lastName) ]
+        ]
+
+
+showArtistLyricsList : List LyricListItem -> Html Msg
+showArtistLyricsList retrievedLyrics =
+    case retrievedLyrics of
+        [] ->
+            text ""
+
+        lyrics ->
+            div
+                [ class "lyric__list" ]
+                (List.map viewLyricListItem lyrics)
+
+
+viewLyricListItem : LyricListItem -> Html Msg
+viewLyricListItem lyricListItem =
+    a
+        [ class "lyric-item", href ("/artists/acdc/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked lyricListItem.slug) ]
+        [ p
+            [ class "lyric-item__title" ]
+            [ text lyricListItem.title ]
         ]
 
 
@@ -190,6 +241,27 @@ searchArtists searchTerm =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+getLyricsForArtist : Slug -> Cmd Msg
+getLyricsForArtist artistSlug =
+    let
+        endpoint =
+            artistLyricsEndpoint artistSlug
+    in
+    request
+        { method = "GET"
+        , headers = []
+        , url = endpoint
+        , body = Http.emptyBody
+        , expect = Http.expectJson LyricsRetrieved lyricListDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+
+-- decoders
 
 
 artistSlugListDecoder : Decoder Slug
@@ -224,6 +296,22 @@ artistDecoder =
 artistListDecoder : Decoder (List Artist)
 artistListDecoder =
     field "artists" (list artistDecoder)
+
+
+lyricListDecoder : Decoder (List LyricListItem)
+lyricListDecoder =
+    list lyricListItemDecoder
+
+
+lyricListItemDecoder : Decoder LyricListItem
+lyricListItemDecoder =
+    map2 LyricListItem
+        (field "title" string)
+        (field "slug" string)
+
+
+
+-- helpers
 
 
 getPrimarySlug : List ArtistSlug -> Maybe ArtistSlug
