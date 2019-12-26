@@ -5,7 +5,7 @@ import Browser.Navigation as Nav
 import Endpoint exposing (request, searchArtistsEndpoint)
 import Html exposing (Html, div, footer, h1, header, img, input, main_, p, span, text)
 import Html.Attributes exposing (class, placeholder, src, value)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
 import Url
@@ -66,6 +66,7 @@ type Msg
     | UrlChanged Url.Url
     | SearchQueryChanged String
     | ArtistsRetrieved (Result Http.Error (List Artist))
+    | ArtistClicked String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -98,6 +99,13 @@ update msg model =
 
                 Err _ ->
                     ( { model | retrievedArtists = [] }, Cmd.none )
+
+        ArtistClicked artistSlug ->
+            let
+                _ =
+                    Debug.log "temp" (artistSlug ++ " clicked!")
+            in
+            ( model, Cmd.none )
 
 
 
@@ -155,7 +163,7 @@ viewArtists retrievedArtists =
 viewArtist : Artist -> Html Msg
 viewArtist artist =
     div
-        [ class "artist__result" ]
+        [ class "artist__result", onClick (ArtistClicked artist.slug) ]
         [ img [ class "artist__image", src ("http://localhost:5010/artists/" ++ artist.slug ++ "/image") ] []
         , p
             [ class "artist__name" ]
