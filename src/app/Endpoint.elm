@@ -1,4 +1,4 @@
-module Endpoint exposing (Endpoint, request, searchArtists)
+module Endpoint exposing (Endpoint, request, searchArtistsEndpoint)
 
 import Http exposing (Body, Expect, Header, request)
 import Url.Builder exposing (QueryParameter, string)
@@ -47,6 +47,6 @@ url paths queryParams =
 -- endpoints
 
 
-searchArtists : String -> Endpoint
-searchArtists searchTerm =
+searchArtistsEndpoint : String -> Endpoint
+searchArtistsEndpoint searchTerm =
     url [ "artists" ] [ string "name" searchTerm ]

@@ -2,11 +2,11 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Endpoint exposing (Endpoint, request, searchArtists)
+import Endpoint exposing (request, searchArtistsEndpoint)
 import Html exposing (Html, div, footer, h1, header, img, input, main_, p, span, text)
 import Html.Attributes exposing (class, placeholder, src, value)
 import Html.Events exposing (onInput)
-import Http exposing (expectJson, get)
+import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
 import Url
 
@@ -169,9 +169,18 @@ viewArtist artist =
 
 searchArtists : String -> Cmd Msg
 searchArtists searchTerm =
-    Http.get
-        { url = "http://localhost:5010/artists?name=" ++ searchTerm
+    let
+        endpoint =
+            searchArtistsEndpoint searchTerm
+    in
+    request
+        { method = "GET"
+        , headers = []
+        , url = endpoint
+        , body = Http.emptyBody
         , expect = Http.expectJson ArtistsRetrieved artistListDecoder
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 
