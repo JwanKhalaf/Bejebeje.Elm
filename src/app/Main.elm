@@ -27,6 +27,11 @@ main =
 -- model
 
 
+type AppState
+    = SearchingArtists (WebData (List Artist))
+    | Home
+
+
 type alias Slug =
     String
 
@@ -65,14 +70,13 @@ type alias Model =
     { key : Nav.Key
     , url : Url.Url
     , searchTerm : String
-    , artists : WebData (List Artist)
-    , retrievedLyrics : List LyricListItem
+    , state : AppState
     }
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key url "" NotAsked [], Cmd.none )
+    ( Model key url "" Home, Cmd.none )
 
 
 
@@ -107,7 +111,7 @@ update msg model =
 
         SearchQueryChanged searchTerm ->
             if String.isEmpty searchTerm then
-                ( { model | searchTerm = searchTerm, artists = NotAsked }, Cmd.none )
+                ( { model | searchTerm = searchTerm, state = Home }, Cmd.none )
 
             else
                 ( { model | searchTerm = searchTerm }, searchArtists searchTerm )
@@ -115,21 +119,21 @@ update msg model =
         ArtistsRetrieved result ->
             case result of
                 Ok artists ->
-                    ( { model | artists = Success artists }, Cmd.none )
+                    ( { model | state = SearchingArtists (Success artists) }, Cmd.none )
 
                 Err error ->
-                    ( { model | artists = Failure error }, Cmd.none )
+                    ( { model | state = SearchingArtists (Failure error) }, Cmd.none )
 
         ArtistClicked artistSlug ->
             ( model, getLyricsForArtist artistSlug )
 
         LyricsRetrieved result ->
             case result of
-                Ok lyrics ->
-                    ( { model | retrievedLyrics = lyrics }, Cmd.none )
+                Ok _ ->
+                    ( model, Cmd.none )
 
                 Err _ ->
-                    ( { model | retrievedLyrics = [] }, Cmd.none )
+                    ( model, Cmd.none )
 
         LyricClicked _ ->
             ( model, Cmd.none )
@@ -158,7 +162,13 @@ view model =
                 [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
             ]
         , main_ []
-            [ showArtists model.artists, showArtistLyricsList model.retrievedLyrics ]
+            [ case model.state of
+                Home ->
+                    showQuote
+
+                SearchingArtists artists ->
+                    showArtists artists
+            ]
         , footer []
             [ div [ class "search" ]
                 [ input
