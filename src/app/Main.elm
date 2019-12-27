@@ -121,10 +121,6 @@ update msg model =
                     ( { model | artists = Failure error }, Cmd.none )
 
         ArtistClicked artistSlug ->
-            let
-                _ =
-                    Debug.log "artist" (artistSlug ++ " clicked!")
-            in
             ( model, getLyricsForArtist artistSlug )
 
         LyricsRetrieved result ->
@@ -135,11 +131,7 @@ update msg model =
                 Err _ ->
                     ( { model | retrievedLyrics = [] }, Cmd.none )
 
-        LyricClicked lyricSlug ->
-            let
-                _ =
-                    Debug.log "lyric" (lyricSlug ++ " clicked!")
-            in
+        LyricClicked _ ->
             ( model, Cmd.none )
 
 
