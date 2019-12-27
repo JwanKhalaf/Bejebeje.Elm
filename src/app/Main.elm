@@ -50,18 +50,29 @@ type alias ArtistSlug =
     }
 
 
+type RemoteData e a
+    = NotAsked
+    | Loading
+    | Failure e
+    | Success a
+
+
+type alias WebData a =
+    RemoteData Http.Error a
+
+
 type alias Model =
     { key : Nav.Key
     , url : Url.Url
     , searchTerm : String
-    , retrievedArtists : List Artist
+    , artists : WebData (List Artist)
     , retrievedLyrics : List LyricListItem
     }
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key url "" [] [], Cmd.none )
+    ( Model key url "" NotAsked [], Cmd.none )
 
 
 
@@ -96,7 +107,7 @@ update msg model =
 
         SearchQueryChanged searchTerm ->
             if String.isEmpty searchTerm then
-                ( { model | searchTerm = searchTerm, retrievedArtists = [] }, Cmd.none )
+                ( { model | searchTerm = searchTerm, artists = NotAsked }, Cmd.none )
 
             else
                 ( { model | searchTerm = searchTerm }, searchArtists searchTerm )
@@ -104,30 +115,30 @@ update msg model =
         ArtistsRetrieved result ->
             case result of
                 Ok artists ->
-                    ( { model | retrievedArtists = artists }, Cmd.none )
+                    ( { model | artists = Success artists }, Cmd.none )
 
-                Err _ ->
-                    ( { model | retrievedArtists = [] }, Cmd.none )
+                Err error ->
+                    ( { model | artists = Failure error }, Cmd.none )
 
         ArtistClicked artistSlug ->
             let
                 _ =
-                    Debug.log "temp" (artistSlug ++ " clicked!")
+                    Debug.log "artist" (artistSlug ++ " clicked!")
             in
             ( model, getLyricsForArtist artistSlug )
 
         LyricsRetrieved result ->
             case result of
                 Ok lyrics ->
-                    ( { model | retrievedLyrics = lyrics, retrievedArtists = [] }, Cmd.none )
+                    ( { model | retrievedLyrics = lyrics }, Cmd.none )
 
                 Err _ ->
-                    ( { model | retrievedLyrics = [], retrievedArtists = [] }, Cmd.none )
+                    ( { model | retrievedLyrics = [] }, Cmd.none )
 
         LyricClicked lyricSlug ->
             let
                 _ =
-                    Debug.log "temp" (lyricSlug ++ " clicked!")
+                    Debug.log "lyric" (lyricSlug ++ " clicked!")
             in
             ( model, Cmd.none )
 
@@ -155,7 +166,7 @@ view model =
                 [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
             ]
         , main_ []
-            [ showArtists model.retrievedArtists, showArtistLyricsList model.retrievedLyrics ]
+            [ showArtists model.artists, showArtistLyricsList model.retrievedLyrics ]
         , footer []
             [ div [ class "search" ]
                 [ input
@@ -177,13 +188,29 @@ showQuote =
         ]
 
 
-showArtists : List Artist -> Html Msg
-showArtists retrievedArtists =
-    case retrievedArtists of
-        [] ->
+showLoader : Html Msg
+showLoader =
+    text "Loading!"
+
+
+showError : Html Msg
+showError =
+    text "Oops, something went wrong!"
+
+
+showArtists : WebData (List Artist) -> Html Msg
+showArtists artistData =
+    case artistData of
+        NotAsked ->
             showQuote
 
-        artists ->
+        Loading ->
+            showLoader
+
+        Failure _ ->
+            showError
+
+        Success artists ->
             div
                 [ class "artist__list" ]
                 (List.map viewArtist artists)
