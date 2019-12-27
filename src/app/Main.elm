@@ -4,7 +4,7 @@ import Browser exposing (application)
 import Browser.Navigation as Nav
 import Endpoint exposing (artistLyricsEndpoint, request, searchArtistsEndpoint)
 import Html exposing (Html, a, div, footer, h1, header, img, input, main_, p, span, text)
-import Html.Attributes exposing (class, href, placeholder, src, value)
+import Html.Attributes exposing (alt, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
@@ -182,7 +182,7 @@ showQuote =
 
 showLoader : Html Msg
 showLoader =
-    text "Loading!"
+    img [ src "loader.svg", alt "an animated loader graphic" ] []
 
 
 showError : Html Msg
