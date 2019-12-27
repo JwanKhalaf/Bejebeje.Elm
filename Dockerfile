@@ -29,7 +29,8 @@ WORKDIR /app
 # from local machine to /app (in the container).
 COPY . .
 
+# check to make sure container can reach package.elm-lang.org
+RUN ping -c 5 package.elm-lang.org
+
 # build elm production code
 RUN elm make src/app/Main.elm --optimize --output=elm.js
-
-RUN ls -lA
