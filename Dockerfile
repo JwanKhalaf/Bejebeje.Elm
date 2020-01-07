@@ -17,6 +17,9 @@ RUN apk update
 # install nodejs
 RUN apk add --update nodejs npm
 
+# install curl
+RUN apk add curl
+
 # install uglifyjs
 RUN npm install uglify-js --global
 
@@ -31,6 +34,9 @@ COPY . .
 
 # check to make sure container can reach package.elm-lang.org
 RUN ping -c 5 package.elm-lang.org
+
+# do a curl request to url that was giving error
+RUN curl https://package.elm-lang.org/packages/elm/file/1.0.5/endpoint.json
 
 # build elm production code
 RUN elm make src/app/Main.elm --optimize --output=elm.js
