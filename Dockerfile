@@ -29,11 +29,14 @@ WORKDIR /app
 # from local machine to /app (in the container).
 COPY . .
 
+# install packages
+RUN npm install
+
 # build elm production code
-RUN elm make src/app/Main.elm --optimize --output=elm.js
+RUN npm run deploy
 
 # see where we are
 RUN pwd
 
 # see what files we have
-RUN ls -lA
+RUN ls -lA dist/
