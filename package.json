@@ -4,7 +4,8 @@
   "description": "The Elm frontend for Bejebeje",
   "main": "index.js",
   "scripts": {
-    "build": "parcel src/index.html"
+    "build": "parcel src/index.html",
+    "deploy": "parcel build src/index.html"
   },
   "repository": {
     "type": "git",
