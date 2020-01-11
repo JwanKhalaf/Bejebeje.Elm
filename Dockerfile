@@ -35,8 +35,9 @@ RUN npm install
 # build elm production code
 RUN npm run deploy
 
-# see where we are
-RUN pwd
+# create a fresh image, this will be a light image because we are only
+# going to put in it the built assets and nothing else.
+FROM nginx:1.17.7-alpine
 
-# see what files we have
-RUN ls -lA dist/
+# copy deploy artifacts
+COPY --from=builder /app/dist /usr/share/nginx/html

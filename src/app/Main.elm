@@ -8,10 +8,10 @@ import Html.Attributes exposing (alt, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
-import Url
+import Url exposing (Url, fromString, toString)
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.application
         { init = init
@@ -66,17 +66,23 @@ type alias WebData a =
     RemoteData Http.Error a
 
 
+type alias Flags =
+    { apiRootUrl : String
+    }
+
+
 type alias Model =
     { key : Nav.Key
-    , url : Url.Url
+    , url : Url
+    , apiRootUrl : Maybe Url
     , searchTerm : String
     , state : AppState
     }
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url key =
-    ( Model key url "" Home, Cmd.none )
+init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url key =
+    ( Model key url (Url.fromString flags.apiRootUrl) "" Home, Cmd.none )
 
 
 
@@ -85,7 +91,7 @@ init _ url key =
 
 type Msg
     = LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
+    | UrlChanged Url
     | SearchQueryChanged String
     | ArtistsRetrieved (Result Http.Error (List Artist))
     | ArtistClicked String
@@ -114,7 +120,12 @@ update msg model =
                 ( { model | searchTerm = searchTerm, state = Home }, Cmd.none )
 
             else
-                ( { model | searchTerm = searchTerm }, searchArtists searchTerm )
+                case model.apiRootUrl of
+                    Nothing ->
+                        ( model, Cmd.none )
+
+                    Just rootUrl ->
+                        ( { model | searchTerm = searchTerm }, searchArtists (toString rootUrl) searchTerm )
 
         ArtistsRetrieved result ->
             case result of
@@ -125,7 +136,12 @@ update msg model =
                     ( { model | state = SearchingArtists (Failure error) }, Cmd.none )
 
         ArtistClicked artistSlug ->
-            ( model, getLyricsForArtist artistSlug )
+            case model.apiRootUrl of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just rootUrl ->
+                    ( model, getLyricsForArtist (toString rootUrl) artistSlug )
 
         LyricsRetrieved result ->
             case result of
@@ -255,11 +271,11 @@ viewLyricListItem lyricListItem =
 -- http
 
 
-searchArtists : String -> Cmd Msg
-searchArtists searchTerm =
+searchArtists : String -> String -> Cmd Msg
+searchArtists apiRootUrl searchTerm =
     let
         endpoint =
-            searchArtistsEndpoint searchTerm
+            searchArtistsEndpoint apiRootUrl searchTerm
     in
     request
         { method = "GET"
@@ -272,11 +288,11 @@ searchArtists searchTerm =
         }
 
 
-getLyricsForArtist : Slug -> Cmd Msg
-getLyricsForArtist artistSlug =
+getLyricsForArtist : String -> Slug -> Cmd Msg
+getLyricsForArtist apiRootUrl artistSlug =
     let
         endpoint =
-            artistLyricsEndpoint artistSlug
+            artistLyricsEndpoint apiRootUrl artistSlug
     in
     request
         { method = "GET"

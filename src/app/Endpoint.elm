@@ -35,9 +35,9 @@ request config =
         }
 
 
-url : List String -> List QueryParameter -> Endpoint
-url paths queryParams =
-    Url.Builder.crossOrigin "http://localhost:5010"
+url : String -> List String -> List QueryParameter -> Endpoint
+url root paths queryParams =
+    Url.Builder.crossOrigin (String.dropRight 1 root)
         paths
         queryParams
         |> Endpoint
@@ -47,11 +47,11 @@ url paths queryParams =
 -- endpoints
 
 
-searchArtistsEndpoint : String -> Endpoint
-searchArtistsEndpoint searchTerm =
-    url [ "artists" ] [ string "name" searchTerm ]
+searchArtistsEndpoint : String -> String -> Endpoint
+searchArtistsEndpoint root searchTerm =
+    url root [ "artists" ] [ string "name" searchTerm ]
 
 
-artistLyricsEndpoint : String -> Endpoint
-artistLyricsEndpoint artistSlug =
-    url [ "artists", artistSlug, "lyrics" ] []
+artistLyricsEndpoint : String -> String -> Endpoint
+artistLyricsEndpoint root artistSlug =
+    url root [ "artists", artistSlug, "lyrics" ] []
