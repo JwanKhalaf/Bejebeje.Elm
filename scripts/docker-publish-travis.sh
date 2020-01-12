@@ -1,11 +1,7 @@
 DOCKER_TAG='latest'
 
-echo "before docker login"
-
 # log into docker hub.
 docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-
-echo "after docker login"
 
 # build the docker image.
 docker build -f ./Dockerfile -t bejebeje/elm:$DOCKER_TAG -t bejebeje/elm:$TRAVIS_BUILD_NUMBER --build-arg FONTAWESOME_NPM_AUTH_TOKEN=$FONTAWESOME_NPM_AUTH_TOKEN --build-arg IDENTITY_AUTHORITY=$IDENTITY_AUTHORITY --build-arg IDENTITY_CLIENT_ID=$IDENTITY_CLIENT_ID --build-arg IDENTITY_REDIRECT_URI=$IDENTITY_REDIRECT_URI --build-arg IDENTITY_RESPONSE_TYPE=$IDENTITY_RESPONSE_TYPE --build-arg IDENTITY_SCOPE=$IDENTITY_SCOPE --build-arg IDENTITY_POST_LOGOUT_REDIRECT_URI=$IDENTITY_POST_LOGOUT_REDIRECT_URI . --no-cache
