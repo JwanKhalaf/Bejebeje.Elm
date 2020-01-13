@@ -1,4 +1,4 @@
-openssl aes-256-cbc -K $encrypted_dbd3dd805918_key -iv $encrypted_dbd3dd805918_iv -in deploy_key.enc -out ./deploy_key -d
+openssl aes-256-cbc -K $encrypted_1a1a2ddddb95_key -iv $encrypted_1a1a2ddddb95_iv -in deploy_key.enc -out ./deploy_key -d
 
 eval "$(ssh-agent -s)"
 
