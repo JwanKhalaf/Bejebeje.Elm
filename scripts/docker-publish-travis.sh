@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 DOCKER_TAG='latest'
 
 # log into docker hub.
