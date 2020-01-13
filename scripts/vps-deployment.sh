@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 echo "Current working directory is:"
 pwd
 

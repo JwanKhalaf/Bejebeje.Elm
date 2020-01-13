@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 echo "now running commands in after-sucess.sh"
 
 pwd
