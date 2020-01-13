@@ -1,0 +1,21 @@
+language: csharp
+mono: none
+sudo: required
+dist: xenial
+dotnet: 2.2
+branches:
+  only:
+    - master
+before_script:
+  - chmod -R a+x scripts
+script:
+  - "./scripts/docker-publish-travis.sh"
+after_success:
+  - "./scripts/after-success.sh"
+notifications:
+  email:
+    on_success: never
+    on_failure: always
+before_install:
+  - openssl aes-256-cbc -K $encrypted_1a1a2ddddb95_key -iv $encrypted_1a1a2ddddb95_iv
+    -in deploy_key.enc -out ./deploy_key -d

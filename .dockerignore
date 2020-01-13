@@ -1,0 +1,10 @@
+node_modules
+variables.env
+.cache
+LICENSE
+README.md
+package-lock.json
+.gitignore
+dist
+elm-stuff
+assets
