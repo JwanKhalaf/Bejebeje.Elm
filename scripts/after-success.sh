@@ -9,4 +9,4 @@ echo -e "Host $SERVER_IP_ADDRESS\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
 ssh-add ./deploy_key
 
 # test ssh connection for: https://github.com/dwyl/learn-travis/issues/42
-ssh -i ./deploy_key -t $SERVER_USER@$SERVER_IP_ADDRESS 'bash -s' < ./scripts/vps_deployment.sh
+ssh -i ./deploy_key -t $SERVER_USER@$SERVER_IP_ADDRESS 'bash -s' < ./scripts/vps-deployment.sh
