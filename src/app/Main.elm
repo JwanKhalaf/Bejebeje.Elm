@@ -28,7 +28,8 @@ main =
 
 
 type AppState
-    = SearchingArtists (WebData (List Artist))
+    = ShowingArtistLyrics (WebData (List LyricListItem))
+    | SearchingArtists (WebData (List Artist))
     | Home
 
 
@@ -149,8 +150,8 @@ update msg model =
 
         LyricsRetrieved result ->
             case result of
-                Ok _ ->
-                    ( model, Cmd.none )
+                Ok artistLyrics ->
+                    ( { model | state = ShowingArtistLyrics (Success artistLyrics) }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -193,6 +194,14 @@ view model =
 
                         Just rootUrl ->
                             showArtists (toString rootUrl) artists
+
+                ShowingArtistLyrics artistLyrics ->
+                    case model.apiRootUrl of
+                        Nothing ->
+                            text ""
+
+                        Just rootUrl ->
+                            showArtistLyricsList (toString rootUrl) artistLyrics
             ]
         , footer []
             [ div [ class "search" ]
@@ -254,22 +263,28 @@ viewArtist rootUrl artist =
         ]
 
 
-showArtistLyricsList : List LyricListItem -> Html Msg
-showArtistLyricsList retrievedLyrics =
-    case retrievedLyrics of
-        [] ->
+showArtistLyricsList : RootUrl -> WebData (List LyricListItem) -> Html Msg
+showArtistLyricsList rootUrl artistLyrics =
+    case artistLyrics of
+        NotAsked ->
             text ""
 
-        lyrics ->
+        Loading ->
+            showLoader
+
+        Failure _ ->
+            showError
+
+        Success lyrics ->
             div
                 [ class "lyric__list" ]
-                (List.map viewLyricListItem lyrics)
+                (List.map (viewLyricListItem rootUrl) lyrics)
 
 
-viewLyricListItem : LyricListItem -> Html Msg
-viewLyricListItem lyricListItem =
+viewLyricListItem : RootUrl -> LyricListItem -> Html Msg
+viewLyricListItem rootUrl lyricListItem =
     a
-        [ class "lyric-item", href ("/artists/acdc/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked lyricListItem.slug) ]
+        [ class "lyric-item", href (rootUrl ++ "artists/acdc/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked lyricListItem.slug) ]
         [ p
             [ class "lyric-item__title" ]
             [ text lyricListItem.title ]
