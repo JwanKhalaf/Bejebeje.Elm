@@ -1,3 +1,7 @@
+echo "now running commands in after-sucess.sh"
+
+pwd
+
 openssl aes-256-cbc -K $encrypted_1a1a2ddddb95_key -iv $encrypted_1a1a2ddddb95_iv -in deploy_key.enc -out ./deploy_key -d
 
 eval "$(ssh-agent -s)"
