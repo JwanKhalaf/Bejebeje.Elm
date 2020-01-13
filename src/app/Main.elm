@@ -36,6 +36,10 @@ type alias Slug =
     String
 
 
+type alias RootUrl =
+    String
+
+
 type alias Artist =
     { firstName : String
     , lastName : String
@@ -183,7 +187,12 @@ view model =
                     showQuote
 
                 SearchingArtists artists ->
-                    showArtists artists
+                    case model.apiRootUrl of
+                        Nothing ->
+                            text ""
+
+                        Just rootUrl ->
+                            showArtists (toString rootUrl) artists
             ]
         , footer []
             [ div [ class "search" ]
@@ -216,8 +225,8 @@ showError =
     text "Oops, something went wrong!"
 
 
-showArtists : WebData (List Artist) -> Html Msg
-showArtists artistData =
+showArtists : RootUrl -> WebData (List Artist) -> Html Msg
+showArtists rootUrl artistData =
     case artistData of
         NotAsked ->
             showQuote
@@ -231,14 +240,14 @@ showArtists artistData =
         Success artists ->
             div
                 [ class "artist__list" ]
-                (List.map viewArtist artists)
+                (List.map (viewArtist rootUrl) artists)
 
 
-viewArtist : Artist -> Html Msg
-viewArtist artist =
+viewArtist : RootUrl -> Artist -> Html Msg
+viewArtist rootUrl artist =
     a
         [ class "artist__result", href ("/artists/" ++ artist.slug ++ "/lyrics"), onClick (ArtistClicked artist.slug) ]
-        [ img [ class "artist__image", src ("http://localhost:5010/artists/" ++ artist.slug ++ "/image") ] []
+        [ img [ class "artist__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image") ] []
         , p
             [ class "artist__name" ]
             [ text (artist.firstName ++ " " ++ artist.lastName) ]
