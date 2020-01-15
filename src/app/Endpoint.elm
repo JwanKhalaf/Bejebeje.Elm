@@ -1,4 +1,4 @@
-module Endpoint exposing (Endpoint, artistLyricsEndpoint, request, searchArtistsEndpoint)
+module Endpoint exposing (Endpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint)
 
 import Http exposing (Body, Expect, Header, request)
 import Url.Builder exposing (QueryParameter, string)
@@ -55,3 +55,8 @@ searchArtistsEndpoint root searchTerm =
 artistLyricsEndpoint : String -> String -> Endpoint
 artistLyricsEndpoint root artistSlug =
     url root [ "artists", artistSlug, "lyrics" ] []
+
+
+lyricEndpoint : String -> String -> String -> Endpoint
+lyricEndpoint root artistSlug lyricSlug =
+    url root [ "artists", artistSlug, "lyrics", lyricSlug ] []
