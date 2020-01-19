@@ -338,7 +338,7 @@ viewLyric lyric =
             showError
 
         Success lyricData ->
-            p [] [ text lyricData.body ]
+            p [ class "lyric__body" ] [ text lyricData.body ]
 
 
 
