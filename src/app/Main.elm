@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Endpoint exposing (artistLyricsEndpoint, request, searchArtistsEndpoint)
+import Endpoint exposing (artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint)
 import Html exposing (Html, a, div, footer, h1, header, img, input, main_, p, span, text)
 import Html.Attributes exposing (alt, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
@@ -28,12 +28,17 @@ main =
 
 
 type AppState
-    = ShowingArtistLyrics (WebData (List LyricListItem))
+    = ShowingLyric (WebData Lyric)
+    | ShowingArtistLyrics (WebData (List LyricListItem))
     | SearchingArtists (WebData (List Artist))
     | Home
 
 
 type alias Slug =
+    String
+
+
+type alias LyricSlug =
     String
 
 
@@ -51,6 +56,12 @@ type alias Artist =
 type alias LyricListItem =
     { title : String
     , slug : String
+    }
+
+
+type alias Lyric =
+    { title : String
+    , body : String
     }
 
 
@@ -82,12 +93,13 @@ type alias Model =
     , apiRootUrl : Maybe Url
     , searchTerm : String
     , state : AppState
+    , activeArtist : Maybe Artist
     }
 
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model key url (Url.fromString flags.apiRootUrl) "" Home, Cmd.none )
+    ( Model key url (Url.fromString flags.apiRootUrl) "" Home Nothing, Cmd.none )
 
 
 
@@ -99,9 +111,10 @@ type Msg
     | UrlChanged Url
     | SearchQueryChanged String
     | ArtistsRetrieved (Result Http.Error (List Artist))
-    | ArtistClicked String
+    | ArtistClicked Artist
     | LyricsRetrieved (Result Http.Error (List LyricListItem))
-    | LyricClicked String
+    | LyricClicked Artist String
+    | LyricRetrieved (Result Http.Error Lyric)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -140,13 +153,13 @@ update msg model =
                 Err error ->
                     ( { model | state = SearchingArtists (Failure error) }, Cmd.none )
 
-        ArtistClicked artistSlug ->
+        ArtistClicked artist ->
             case model.apiRootUrl of
                 Nothing ->
                     ( model, Cmd.none )
 
                 Just rootUrl ->
-                    ( model, getLyricsForArtist (toString rootUrl) artistSlug )
+                    ( { model | activeArtist = Just artist }, getLyricsForArtist (toString rootUrl) artist.slug )
 
         LyricsRetrieved result ->
             case result of
@@ -156,8 +169,21 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
-        LyricClicked _ ->
-            ( model, Cmd.none )
+        LyricClicked artist lyricSlug ->
+            case model.apiRootUrl of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just rootUrl ->
+                    ( model, getLyric (toString rootUrl) artist lyricSlug )
+
+        LyricRetrieved result ->
+            case result of
+                Ok lyric ->
+                    ( { model | state = ShowingLyric (Success lyric) }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
 
 
 
@@ -201,7 +227,15 @@ view model =
                             text ""
 
                         Just rootUrl ->
-                            showArtistLyricsList (toString rootUrl) artistLyrics
+                            case model.activeArtist of
+                                Nothing ->
+                                    text ""
+
+                                Just artist ->
+                                    showArtistLyricsList (toString rootUrl) artist artistLyrics
+
+                ShowingLyric lyric ->
+                    viewLyric lyric
             ]
         , footer []
             [ div [ class "search" ]
@@ -255,7 +289,7 @@ showArtists rootUrl artistData =
 viewArtist : RootUrl -> Artist -> Html Msg
 viewArtist rootUrl artist =
     a
-        [ class "artist__result", href ("/artists/" ++ artist.slug ++ "/lyrics"), onClick (ArtistClicked artist.slug) ]
+        [ class "artist__result", href ("/artists/" ++ artist.slug ++ "/lyrics"), onClick (ArtistClicked artist) ]
         [ img [ class "artist__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image") ] []
         , p
             [ class "artist__name" ]
@@ -263,8 +297,8 @@ viewArtist rootUrl artist =
         ]
 
 
-showArtistLyricsList : RootUrl -> WebData (List LyricListItem) -> Html Msg
-showArtistLyricsList rootUrl artistLyrics =
+showArtistLyricsList : RootUrl -> Artist -> WebData (List LyricListItem) -> Html Msg
+showArtistLyricsList rootUrl artist artistLyrics =
     case artistLyrics of
         NotAsked ->
             text ""
@@ -278,17 +312,33 @@ showArtistLyricsList rootUrl artistLyrics =
         Success lyrics ->
             div
                 [ class "lyric__list" ]
-                (List.map (viewLyricListItem rootUrl) lyrics)
+                (List.map (viewLyricListItem rootUrl artist) lyrics)
 
 
-viewLyricListItem : RootUrl -> LyricListItem -> Html Msg
-viewLyricListItem rootUrl lyricListItem =
+viewLyricListItem : RootUrl -> Artist -> LyricListItem -> Html Msg
+viewLyricListItem rootUrl artist lyricListItem =
     a
-        [ class "lyric-item", href (rootUrl ++ "artists/acdc/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked lyricListItem.slug) ]
+        [ class "lyric-item", onClick (LyricClicked artist lyricListItem.slug) ]
         [ p
             [ class "lyric-item__title" ]
             [ text lyricListItem.title ]
         ]
+
+
+viewLyric : WebData Lyric -> Html Msg
+viewLyric lyric =
+    case lyric of
+        NotAsked ->
+            text ""
+
+        Loading ->
+            showLoader
+
+        Failure _ ->
+            showError
+
+        Success lyricData ->
+            p [ class "lyric__body" ] [ text lyricData.body ]
 
 
 
@@ -324,6 +374,23 @@ getLyricsForArtist apiRootUrl artistSlug =
         , url = endpoint
         , body = Http.emptyBody
         , expect = Http.expectJson LyricsRetrieved lyricListDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getLyric : RootUrl -> Artist -> LyricSlug -> Cmd Msg
+getLyric apiRootUrl artist lyricSlug =
+    let
+        endpoint =
+            lyricEndpoint apiRootUrl artist.slug lyricSlug
+    in
+    request
+        { method = "GET"
+        , headers = []
+        , url = endpoint
+        , body = Http.emptyBody
+        , expect = Http.expectJson LyricRetrieved lyricDecoder
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -377,6 +444,13 @@ lyricListItemDecoder =
     map2 LyricListItem
         (field "title" string)
         (field "slug" string)
+
+
+lyricDecoder : Decoder Lyric
+lyricDecoder =
+    map2 Lyric
+        (field "title" string)
+        (field "body" string)
 
 
 
