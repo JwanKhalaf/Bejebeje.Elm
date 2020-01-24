@@ -9,6 +9,7 @@ import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
 import Url exposing (Url, fromString, toString)
+import Url.Parser as Parser exposing ((</>), Parser)
 
 
 main : Program Flags Model Msg
@@ -99,7 +100,50 @@ type alias Model =
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model key url (Url.fromString flags.apiRootUrl) "" Home Nothing, Cmd.none )
+    let
+        apiRootUrl =
+            Url.fromString flags.apiRootUrl
+
+        parsedUrl =
+            Maybe.withDefault NotFound (Parser.parse routeParser url)
+
+        command =
+            case parsedUrl of
+                ArtistRoute artist ->
+                    case apiRootUrl of
+                        Just rootUrl ->
+                            getLyricsForArtist (Url.toString rootUrl) artist
+
+                        Nothing ->
+                            Cmd.none
+
+                NotFound ->
+                    Cmd.none
+
+        _ =
+            Debug.log "parsed Url" parsedUrl
+
+        _ =
+            case apiRootUrl of
+                Just rootUrl ->
+                    Debug.log "apiRootUrl" (Url.toString rootUrl)
+
+                Nothing ->
+                    ""
+    in
+    ( Model key url apiRootUrl "" Home Nothing, command )
+
+
+type Route
+    = ArtistRoute String
+    | NotFound
+
+
+routeParser : Parser (Route -> a) a
+routeParser =
+    Parser.oneOf
+        [ Parser.map ArtistRoute (Parser.s "artists" </> Parser.string </> Parser.s "lyrics")
+        ]
 
 
 
@@ -229,7 +273,7 @@ view model =
                         Just rootUrl ->
                             case model.activeArtist of
                                 Nothing ->
-                                    text ""
+                                    text "because active artist is empty"
 
                                 Just artist ->
                                     showArtistLyricsList (toString rootUrl) artist artistLyrics
