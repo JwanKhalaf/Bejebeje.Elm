@@ -2,12 +2,13 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Endpoint exposing (artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint)
+import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, task)
 import Html exposing (Html, a, div, footer, h1, header, img, input, main_, p, span, text)
 import Html.Attributes exposing (alt, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
+import Task exposing (Task)
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
 
@@ -156,7 +157,7 @@ type Msg
     | SearchQueryChanged String
     | ArtistsRetrieved (Result Http.Error (List Artist))
     | ArtistClicked Artist
-    | LyricsRetrieved (Result Http.Error (List LyricListItem))
+    | LyricsRetrieved (Result Http.Error ( Artist, List LyricListItem ))
     | LyricClicked Artist String
     | LyricRetrieved (Result Http.Error Lyric)
 
@@ -406,6 +407,52 @@ searchArtists apiRootUrl searchTerm =
         }
 
 
+
+-- fetchArtistDetails : String -> Slug -> Cmd Msg
+-- fetchArtistDetails apiRootUrl artistSlug =
+--     let
+--         endpoint =
+--             artistDetailsEndpoint apiRootUrl artistSlug
+--     in
+--     request
+--         { method = "GET"
+--         , headers = []
+--         , url = endpoint
+--         , body = Http.emptyBody
+--         , expect = Http.expectJson ArtistDetailsRetrieved artistDecoder
+--         , timeout = Nothing
+--         , tracker = Nothing
+--         }
+
+
+getArtist : String -> Slug -> Task Http.Error Artist
+getArtist apiRootUrl artistSlug =
+    let
+        endpoint =
+            artistDetailsEndpoint apiRootUrl artistSlug
+    in
+    task
+        { method = "GET"
+        , headers = []
+        , url = endpoint
+        , body = Http.emptyBody
+        , resolver = Http.stringResolver <| handleJsonResponse <| artistDecoder
+        , timeout = Nothing
+        }
+
+
+
+-- task :
+--     { method : String
+--     , headers : List Header
+--     , url : String
+--     , body : Body
+--     , resolver : Resolver x a
+--     , timeout : Maybe Float
+--     }
+--     -> Task x a
+
+
 getLyricsForArtist : String -> Slug -> Cmd Msg
 getLyricsForArtist apiRootUrl artistSlug =
     let
@@ -498,7 +545,34 @@ lyricDecoder =
 
 
 
+-- tasks
+-- getArtistLyrics : Task Error Artist (List LyricListItem)
+-- getArtistLyrics
 -- helpers
+
+
+handleJsonResponse : Decoder a -> Http.Response String -> Result Http.Error a
+handleJsonResponse decoder response =
+    case response of
+        Http.BadUrl_ url ->
+            Err (Http.BadUrl url)
+
+        Http.Timeout_ ->
+            Err Http.Timeout
+
+        Http.BadStatus_ { statusCode } _ ->
+            Err (Http.BadStatus statusCode)
+
+        Http.NetworkError_ ->
+            Err Http.NetworkError
+
+        Http.GoodStatus_ _ body ->
+            case Json.Decode.decodeString decoder body of
+                Err _ ->
+                    Err (Http.BadBody body)
+
+                Ok result ->
+                    Ok result
 
 
 getPrimarySlug : List ArtistSlug -> Maybe ArtistSlug
