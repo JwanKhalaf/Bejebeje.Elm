@@ -407,24 +407,6 @@ searchArtists apiRootUrl searchTerm =
         }
 
 
-
--- fetchArtistDetails : String -> Slug -> Cmd Msg
--- fetchArtistDetails apiRootUrl artistSlug =
---     let
---         endpoint =
---             artistDetailsEndpoint apiRootUrl artistSlug
---     in
---     request
---         { method = "GET"
---         , headers = []
---         , url = endpoint
---         , body = Http.emptyBody
---         , expect = Http.expectJson ArtistDetailsRetrieved artistDecoder
---         , timeout = Nothing
---         , tracker = Nothing
---         }
-
-
 getArtist : String -> Slug -> Task Http.Error Artist
 getArtist apiRootUrl artistSlug =
     let
@@ -438,35 +420,6 @@ getArtist apiRootUrl artistSlug =
         , body = Http.emptyBody
         , resolver = Http.stringResolver <| handleJsonResponse <| artistDecoder
         , timeout = Nothing
-        }
-
-
-
--- task :
---     { method : String
---     , headers : List Header
---     , url : String
---     , body : Body
---     , resolver : Resolver x a
---     , timeout : Maybe Float
---     }
---     -> Task x a
-
-
-getLyricsForArtist : String -> Slug -> Cmd Msg
-getLyricsForArtist apiRootUrl artistSlug =
-    let
-        endpoint =
-            artistLyricsEndpoint apiRootUrl artistSlug
-    in
-    request
-        { method = "GET"
-        , headers = []
-        , url = endpoint
-        , body = Http.emptyBody
-        , expect = Http.expectJson LyricsRetrieved lyricListDecoder
-        , timeout = Nothing
-        , tracker = Nothing
         }
 
 
