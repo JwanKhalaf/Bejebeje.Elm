@@ -31,7 +31,7 @@ main =
 
 type AppState
     = ShowingLyric (WebData Lyric)
-    | ShowingArtistLyrics (WebData (List LyricListItem))
+    | ShowingArtistLyrics ArtistRestult
     | SearchingArtists (WebData (List Artist))
     | Home
 
@@ -70,6 +70,12 @@ type alias Lyric =
 type alias ArtistSlug =
     { name : String
     , isPrimary : Bool
+    }
+
+
+type alias ArtistRestult =
+    { artist : WebData Artist
+    , lyrics : WebData (List LyricListItem)
     }
 
 
@@ -157,7 +163,7 @@ type Msg
     | SearchQueryChanged String
     | ArtistsRetrieved (Result Http.Error (List Artist))
     | ArtistClicked Artist
-    | LyricsRetrieved (Result Http.Error ( Artist, List LyricListItem ))
+    | LyricsRetrieved (Result Http.Error (List LyricListItem))
     | LyricClicked Artist String
     | LyricRetrieved (Result Http.Error Lyric)
 
@@ -209,7 +215,7 @@ update msg model =
         LyricsRetrieved result ->
             case result of
                 Ok artistLyrics ->
-                    ( { model | state = ShowingArtistLyrics (Success artistLyrics) }, Cmd.none )
+                    ( { model | state = ShowingArtistLyrics { artist = NotAsked, lyrics = Success artistLyrics } }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -266,7 +272,7 @@ view model =
                         Just rootUrl ->
                             showArtists (toString rootUrl) artists
 
-                ShowingArtistLyrics artistLyrics ->
+                ShowingArtistLyrics artistResult ->
                     case model.apiRootUrl of
                         Nothing ->
                             text ""
@@ -274,10 +280,17 @@ view model =
                         Just rootUrl ->
                             case model.activeArtist of
                                 Nothing ->
-                                    text "because active artist is empty"
+                                    text ""
 
                                 Just artist ->
-                                    showArtistLyricsList (toString rootUrl) artist artistLyrics
+                                    div []
+                                        [ showArtistDetails (toString rootUrl)
+                                            artistResult.artist
+                                        , showArtistLyricsList
+                                            (toString rootUrl)
+                                            artist
+                                            artistResult.lyrics
+                                        ]
 
                 ShowingLyric lyric ->
                     viewLyric lyric
@@ -342,6 +355,22 @@ viewArtist rootUrl artist =
         ]
 
 
+showArtistDetails : RootUrl -> WebData Artist -> Html Msg
+showArtistDetails rootUrl artist =
+    case artist of
+        NotAsked ->
+            text ""
+
+        Loading ->
+            showLoader
+
+        Failure _ ->
+            showError
+
+        Success a ->
+            viewArtistCardOnLyricsList a
+
+
 showArtistLyricsList : RootUrl -> Artist -> WebData (List LyricListItem) -> Html Msg
 showArtistLyricsList rootUrl artist artistLyrics =
     case artistLyrics of
@@ -386,6 +415,11 @@ viewLyric lyric =
             p [ class "lyric__body" ] [ text lyricData.body ]
 
 
+viewArtistCardOnLyricsList : Artist -> Html Msg
+viewArtistCardOnLyricsList artist =
+    div [] [ text artist.firstName, text artist.lastName ]
+
+
 
 -- http
 
@@ -402,6 +436,23 @@ searchArtists apiRootUrl searchTerm =
         , url = endpoint
         , body = Http.emptyBody
         , expect = Http.expectJson ArtistsRetrieved artistListDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getLyricsForArtist : String -> Slug -> Cmd Msg
+getLyricsForArtist apiRootUrl artistSlug =
+    let
+        endpoint =
+            artistLyricsEndpoint apiRootUrl artistSlug
+    in
+    request
+        { method = "GET"
+        , headers = []
+        , url = endpoint
+        , body = Http.emptyBody
+        , expect = Http.expectJson LyricsRetrieved lyricListDecoder
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -495,13 +546,6 @@ lyricDecoder =
     map2 Lyric
         (field "title" string)
         (field "body" string)
-
-
-
--- tasks
--- getArtistLyrics : Task Error Artist (List LyricListItem)
--- getArtistLyrics
--- helpers
 
 
 handleJsonResponse : Decoder a -> Http.Response String -> Result Http.Error a
