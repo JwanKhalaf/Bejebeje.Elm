@@ -101,7 +101,7 @@ type alias Model =
     , apiRootUrl : Maybe Url
     , searchTerm : String
     , state : AppState
-    , activeArtist : Maybe Artist
+    , activeArtistSlug : Maybe Slug
     }
 
 
@@ -114,31 +114,36 @@ init flags url key =
         parsedUrl =
             Maybe.withDefault NotFound (Parser.parse routeParser url)
 
-        command =
+        temp =
             case parsedUrl of
                 ArtistRoute artist ->
                     case apiRootUrl of
                         Just rootUrl ->
-                            getLyricsForArtist (Url.toString rootUrl) artist
+                            { commands =
+                                Cmd.batch
+                                    [ getLyricsForArtist (Url.toString rootUrl) artist
+                                    , getArtist (toString rootUrl) artist
+                                    ]
+                            , state = ShowingArtistLyrics { artist = Loading, lyrics = Loading }
+                            , artistSlug = Just artist
+                            }
 
                         Nothing ->
-                            Cmd.none
+                            { commands = Cmd.none, state = Home, artistSlug = Nothing }
 
                 NotFound ->
-                    Cmd.none
+                    { commands = Cmd.none, state = Home, artistSlug = Nothing }
 
-        _ =
-            Debug.log "parsed Url" parsedUrl
-
-        _ =
-            case apiRootUrl of
-                Just rootUrl ->
-                    Debug.log "apiRootUrl" (Url.toString rootUrl)
-
-                Nothing ->
-                    ""
+        -- _ =
+        --     Debug.log "parsed Url" parsedUrl
+        -- _ =
+        --     case apiRootUrl of
+        --         Just rootUrl ->
+        --             Debug.log "apiRootUrl" (Url.toString rootUrl)
+        --         Nothing ->
+        --             ""
     in
-    ( Model key url apiRootUrl "" Home Nothing, command )
+    ( Model key url apiRootUrl "" temp.state temp.artistSlug, temp.commands )
 
 
 type Route
@@ -164,7 +169,8 @@ type Msg
     | ArtistsRetrieved (Result Http.Error (List Artist))
     | ArtistClicked Artist
     | LyricsRetrieved (Result Http.Error (List LyricListItem))
-    | LyricClicked Artist String
+    | ArtistDetailsRetrieved (Result Http.Error Artist)
+    | LyricClicked Slug String
     | LyricRetrieved (Result Http.Error Lyric)
 
 
@@ -210,15 +216,41 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just rootUrl ->
-                    ( { model | activeArtist = Just artist }, getLyricsForArtist (toString rootUrl) artist.slug )
+                    ( { model | activeArtistSlug = Just artist.slug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString rootUrl) artist.slug, getArtist (toString rootUrl) artist.slug ] )
 
         LyricsRetrieved result ->
-            case result of
-                Ok artistLyrics ->
-                    ( { model | state = ShowingArtistLyrics { artist = NotAsked, lyrics = Success artistLyrics } }, Cmd.none )
+            let
+                temp =
+                    case model.state of
+                        ShowingArtistLyrics a ->
+                            case result of
+                                Ok artistLyrics ->
+                                    ShowingArtistLyrics { a | lyrics = Success artistLyrics }
 
-                Err _ ->
-                    ( model, Cmd.none )
+                                Err e ->
+                                    ShowingArtistLyrics { a | lyrics = Failure e }
+
+                        _ ->
+                            model.state
+            in
+            ( { model | state = temp }, Cmd.none )
+
+        ArtistDetailsRetrieved result ->
+            let
+                temp =
+                    case model.state of
+                        ShowingArtistLyrics a ->
+                            case result of
+                                Ok art ->
+                                    ShowingArtistLyrics { a | artist = Success art }
+
+                                Err e ->
+                                    ShowingArtistLyrics { a | artist = Failure e }
+
+                        _ ->
+                            model.state
+            in
+            ( { model | state = temp }, Cmd.none )
 
         LyricClicked artist lyricSlug ->
             case model.apiRootUrl of
@@ -278,7 +310,7 @@ view model =
                             text ""
 
                         Just rootUrl ->
-                            case model.activeArtist of
+                            case model.activeArtistSlug of
                                 Nothing ->
                                     text ""
 
@@ -371,8 +403,8 @@ showArtistDetails rootUrl artist =
             viewArtistCardOnLyricsList a
 
 
-showArtistLyricsList : RootUrl -> Artist -> WebData (List LyricListItem) -> Html Msg
-showArtistLyricsList rootUrl artist artistLyrics =
+showArtistLyricsList : RootUrl -> Slug -> WebData (List LyricListItem) -> Html Msg
+showArtistLyricsList rootUrl artistSlug artistLyrics =
     case artistLyrics of
         NotAsked ->
             text ""
@@ -386,13 +418,13 @@ showArtistLyricsList rootUrl artist artistLyrics =
         Success lyrics ->
             div
                 [ class "lyric__list" ]
-                (List.map (viewLyricListItem rootUrl artist) lyrics)
+                (List.map (viewLyricListItem rootUrl artistSlug) lyrics)
 
 
-viewLyricListItem : RootUrl -> Artist -> LyricListItem -> Html Msg
-viewLyricListItem rootUrl artist lyricListItem =
+viewLyricListItem : RootUrl -> Slug -> LyricListItem -> Html Msg
+viewLyricListItem rootUrl artistSlug lyricListItem =
     a
-        [ class "lyric-item", onClick (LyricClicked artist lyricListItem.slug) ]
+        [ class "lyric-item", onClick (LyricClicked artistSlug lyricListItem.slug) ]
         [ p
             [ class "lyric-item__title" ]
             [ text lyricListItem.title ]
@@ -458,27 +490,28 @@ getLyricsForArtist apiRootUrl artistSlug =
         }
 
 
-getArtist : String -> Slug -> Task Http.Error Artist
+getArtist : String -> Slug -> Cmd Msg
 getArtist apiRootUrl artistSlug =
     let
         endpoint =
             artistDetailsEndpoint apiRootUrl artistSlug
     in
-    task
+    request
         { method = "GET"
         , headers = []
         , url = endpoint
         , body = Http.emptyBody
-        , resolver = Http.stringResolver <| handleJsonResponse <| artistDecoder
+        , expect = Http.expectJson ArtistDetailsRetrieved artistDetailsDecoder
         , timeout = Nothing
+        , tracker = Nothing
         }
 
 
-getLyric : RootUrl -> Artist -> LyricSlug -> Cmd Msg
-getLyric apiRootUrl artist lyricSlug =
+getLyric : RootUrl -> Slug -> LyricSlug -> Cmd Msg
+getLyric apiRootUrl artistSlug lyricSlug =
     let
         endpoint =
-            lyricEndpoint apiRootUrl artist.slug lyricSlug
+            lyricEndpoint apiRootUrl artistSlug lyricSlug
     in
     request
         { method = "GET"
@@ -522,6 +555,14 @@ artistDecoder =
         (field "firstName" string)
         (field "lastName" string)
         (field "slugs" artistSlugListDecoder)
+
+
+artistDetailsDecoder : Decoder Artist
+artistDetailsDecoder =
+    map3 Artist
+        (field "firstName" string)
+        (field "lastName" string)
+        (field "slug" string)
 
 
 artistListDecoder : Decoder (List Artist)
