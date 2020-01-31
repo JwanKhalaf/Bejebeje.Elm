@@ -133,15 +133,6 @@ init flags url key =
 
                 NotFound ->
                     { commands = Cmd.none, state = Home, artistSlug = Nothing }
-
-        -- _ =
-        --     Debug.log "parsed Url" parsedUrl
-        -- _ =
-        --     case apiRootUrl of
-        --         Just rootUrl ->
-        --             Debug.log "apiRootUrl" (Url.toString rootUrl)
-        --         Nothing ->
-        --             ""
     in
     ( Model key url apiRootUrl "" temp.state temp.artistSlug, temp.commands )
 
@@ -291,42 +282,40 @@ view model =
                 [ class "logo" ]
                 [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
             ]
-        , main_ []
-            [ case model.state of
+        , main_ [] <|
+            case model.state of
                 Home ->
-                    showQuote
+                    [ showQuote ]
 
                 SearchingArtists artists ->
                     case model.apiRootUrl of
                         Nothing ->
-                            text ""
+                            [ text "" ]
 
                         Just rootUrl ->
-                            showArtists (toString rootUrl) artists
+                            [ showArtists (toString rootUrl) artists ]
 
                 ShowingArtistLyrics artistResult ->
                     case model.apiRootUrl of
                         Nothing ->
-                            text ""
+                            [ text "" ]
 
                         Just rootUrl ->
                             case model.activeArtistSlug of
                                 Nothing ->
-                                    text ""
+                                    [ text "" ]
 
                                 Just artist ->
-                                    div []
-                                        [ showArtistDetails (toString rootUrl)
-                                            artistResult.artist
-                                        , showArtistLyricsList
-                                            (toString rootUrl)
-                                            artist
-                                            artistResult.lyrics
-                                        ]
+                                    [ showArtistDetails (toString rootUrl)
+                                        artistResult.artist
+                                    , showArtistLyricsList
+                                        (toString rootUrl)
+                                        artist
+                                        artistResult.lyrics
+                                    ]
 
                 ShowingLyric lyric ->
-                    viewLyric lyric
-            ]
+                    [ viewLyric lyric ]
         , footer []
             [ div [ class "search" ]
                 [ input
@@ -449,7 +438,7 @@ viewLyric lyric =
 
 viewArtistCardOnLyricsList : Artist -> Html Msg
 viewArtistCardOnLyricsList artist =
-    div [] [ text artist.firstName, text artist.lastName ]
+    div [ class "card" ] [ text artist.firstName, text artist.lastName ]
 
 
 
