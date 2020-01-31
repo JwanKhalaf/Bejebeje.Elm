@@ -105,3 +105,30 @@ main {
   color: $white;
   white-space: pre-wrap;
 }
+
+.card {
+  background: $light-grey;
+  border-radius: 3px;
+}
+
+.artist-card {
+  display: flex;
+  align-items: center;
+  padding: 17px;
+  margin: 0 0 20px 0;
+}
+
+.artist-card__image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px inset rgba($black, 0.6);
+  margin: 0 20px 0 0;
+}
+
+.artist-card__name {
+  @include fontSize(1.375);
+  font-family: $opensans, arial, sans-serif;
+  font-weight: 700;
+  color: rgba($white, 0.7);
+}

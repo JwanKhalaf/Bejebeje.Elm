@@ -13,6 +13,8 @@
 }
 
 .lyric-item__title {
-  font-size: 1.2rem;
-  color: $white;
+  @include fontSize(1.2);
+  font-family: $lora, "Times New Roman", Times, serif;
+  font-weight: 700;
+  color: rgba($white, 0.55);
 }
