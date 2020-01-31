@@ -116,6 +116,9 @@ init flags url key =
 
         temp =
             case parsedUrl of
+                HomeRoute ->
+                    { commands = Cmd.none, state = Home, artistSlug = Nothing }
+
                 ArtistRoute artist ->
                     case apiRootUrl of
                         Just rootUrl ->
@@ -138,14 +141,16 @@ init flags url key =
 
 
 type Route
-    = ArtistRoute String
+    = HomeRoute
+    | ArtistRoute String
     | NotFound
 
 
 routeParser : Parser (Route -> a) a
 routeParser =
     Parser.oneOf
-        [ Parser.map ArtistRoute (Parser.s "artists" </> Parser.string </> Parser.s "lyrics")
+        [ Parser.map HomeRoute Parser.top
+        , Parser.map ArtistRoute (Parser.s "artists" </> Parser.string </> Parser.s "lyrics")
         ]
 
 
@@ -163,6 +168,7 @@ type Msg
     | ArtistDetailsRetrieved (Result Http.Error Artist)
     | LyricClicked Slug String
     | LyricRetrieved (Result Http.Error Lyric)
+    | WantToGoHome
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -259,6 +265,9 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        WantToGoHome ->
+            ( { model | state = Home, searchTerm = "" }, Cmd.none )
+
 
 
 -- subscriptions
@@ -277,54 +286,65 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Bêjebêje"
     , body =
-        [ header []
-            [ div
-                [ class "logo" ]
-                [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
-            ]
-        , main_ [] <|
-            case model.state of
-                Home ->
-                    [ showQuote ]
-
-                SearchingArtists artists ->
-                    case model.apiRootUrl of
-                        Nothing ->
-                            [ text "" ]
-
-                        Just rootUrl ->
-                            [ showArtists (toString rootUrl) artists ]
-
-                ShowingArtistLyrics artistResult ->
-                    case model.apiRootUrl of
-                        Nothing ->
-                            [ text "" ]
-
-                        Just rootUrl ->
-                            case model.activeArtistSlug of
-                                Nothing ->
-                                    [ text "" ]
-
-                                Just artist ->
-                                    [ showArtistDetails (toString rootUrl)
-                                        artistResult.artist
-                                    , showArtistLyricsList
-                                        (toString rootUrl)
-                                        artist
-                                        artistResult.lyrics
-                                    ]
-
-                ShowingLyric lyric ->
-                    [ viewLyric lyric ]
+        [ header
+            []
+            [ showLogo ]
+        , main_ [] <| showState model.apiRootUrl model.state model.activeArtistSlug
         , footer []
-            [ div [ class "search" ]
-                [ input
-                    [ class "search__input", placeholder "Search for artist or lyric", value model.searchTerm, onInput SearchQueryChanged ]
-                    []
-                ]
-            ]
+            [ showSearch model.searchTerm ]
         ]
     }
+
+
+showState : Maybe Url -> AppState -> Maybe Slug -> List (Html Msg)
+showState rootUrl state activeArtistSlug =
+    case state of
+        Home ->
+            [ showQuote ]
+
+        SearchingArtists artists ->
+            case rootUrl of
+                Nothing ->
+                    [ text "" ]
+
+                Just a ->
+                    [ showArtists (toString a) artists ]
+
+        ShowingArtistLyrics artistResult ->
+            case ( rootUrl, activeArtistSlug ) of
+                ( Just a, Just artist ) ->
+                    [ showArtistDetails (toString a)
+                        artistResult.artist
+                    , showArtistLyricsList
+                        (toString a)
+                        artist
+                        artistResult.lyrics
+                    ]
+
+                _ ->
+                    [ text "" ]
+
+        ShowingLyric lyric ->
+            [ viewLyric lyric ]
+
+
+showLogo : Html Msg
+showLogo =
+    div
+        [ class "logo" ]
+        [ a
+            [ href "/", onClick WantToGoHome ]
+            [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
+        ]
+
+
+showSearch : String -> Html Msg
+showSearch searchTerm =
+    div [ class "search" ]
+        [ input
+            [ class "search__input", placeholder "Search for artist or lyric", value searchTerm, onInput SearchQueryChanged ]
+            []
+        ]
 
 
 showQuote : Html Msg
@@ -389,7 +409,7 @@ showArtistDetails rootUrl artist =
             showError
 
         Success a ->
-            viewArtistCardOnLyricsList a
+            viewArtistCardOnLyricsList rootUrl a
 
 
 showArtistLyricsList : RootUrl -> Slug -> WebData (List LyricListItem) -> Html Msg
@@ -413,7 +433,7 @@ showArtistLyricsList rootUrl artistSlug artistLyrics =
 viewLyricListItem : RootUrl -> Slug -> LyricListItem -> Html Msg
 viewLyricListItem rootUrl artistSlug lyricListItem =
     a
-        [ class "lyric-item", onClick (LyricClicked artistSlug lyricListItem.slug) ]
+        [ class "lyric-item", href ("/artists/" ++ artistSlug ++ "/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked artistSlug lyricListItem.slug) ]
         [ p
             [ class "lyric-item__title" ]
             [ text lyricListItem.title ]
@@ -436,9 +456,17 @@ viewLyric lyric =
             p [ class "lyric__body" ] [ text lyricData.body ]
 
 
-viewArtistCardOnLyricsList : Artist -> Html Msg
-viewArtistCardOnLyricsList artist =
-    div [ class "card" ] [ text artist.firstName, text artist.lastName ]
+viewArtistCardOnLyricsList : RootUrl -> Artist -> Html Msg
+viewArtistCardOnLyricsList rootUrl artist =
+    div
+        [ class "card artist-card" ]
+        [ img
+            [ class "artist-card__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image") ]
+            []
+        , h1
+            [ class "artist-card__name" ]
+            [ text artist.firstName, text artist.lastName ]
+        ]
 
 
 
