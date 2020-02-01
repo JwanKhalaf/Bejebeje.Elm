@@ -213,7 +213,7 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just rootUrl ->
-                    ( { model | activeArtistSlug = Just artist.slug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString rootUrl) artist.slug, getArtist (toString rootUrl) artist.slug ] )
+                    ( { model | searchTerm = "", activeArtistSlug = Just artist.slug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString rootUrl) artist.slug, getArtist (toString rootUrl) artist.slug ] )
 
         LyricsRetrieved result ->
             let

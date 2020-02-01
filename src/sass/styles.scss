@@ -8,7 +8,7 @@ html {
 }
 
 body {
-  height: 100%;
+  min-height: 100%;
   display: grid;
   grid-template-rows: auto 1fr auto;
   background-color: $dark-grey;
@@ -34,6 +34,10 @@ header {
 }
 
 .search {
+  position: fixed;
+  left: 1.25em;
+  right: 1.25em;
+  bottom: 1.25em;
   background-color: $light-grey;
   padding: 1.2em;
   border-radius: 2px;
