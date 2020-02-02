@@ -302,7 +302,7 @@ getClass : AppState -> String
 getClass state =
     case state of
         SearchingArtists _ ->
-            "bb-justify-content-start"
+            "search-results"
 
         _ ->
             ""

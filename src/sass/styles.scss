@@ -2,7 +2,6 @@
 @import "./mixins";
 @import "./variables";
 @import "./lyrics-list";
-@import "./helpers";
 
 html {
   height: 100%;
@@ -64,6 +63,10 @@ main {
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+main.search-results {
+  justify-content: end;
 }
 
 .quote {
