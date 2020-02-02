@@ -2,17 +2,22 @@
 @import "./mixins";
 @import "./variables";
 @import "./lyrics-list";
+@import "./helpers";
 
 html {
   height: 100%;
 }
 
 body {
-  min-height: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
+  height: 100%;
   background-color: $dark-grey;
   padding: 1.25em;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100%;
 }
 
 header {

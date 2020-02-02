@@ -286,14 +286,26 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Bêjebêje"
     , body =
-        [ header
-            []
-            [ showLogo ]
-        , main_ [] <| showState model.apiRootUrl model.state model.activeArtistSlug
-        , footer []
-            [ showSearch model.searchTerm ]
+        [ div
+            [ class "app" ]
+            [ header
+                []
+                [ showLogo ]
+            , main_ [ class (getClass model.state) ] <| showState model.apiRootUrl model.state model.activeArtistSlug
+            , showSearch model.searchTerm
+            ]
         ]
     }
+
+
+getClass : AppState -> String
+getClass state =
+    case state of
+        SearchingArtists _ ->
+            "bb-justify-content-start"
+
+        _ ->
+            ""
 
 
 showState : Maybe Url -> AppState -> Maybe Slug -> List (Html Msg)
