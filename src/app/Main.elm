@@ -3,7 +3,7 @@ module Main exposing (..)
 import Browser exposing (application)
 import Browser.Navigation as Nav
 import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, task)
-import Html exposing (Html, a, div, footer, h1, header, img, input, main_, p, span, text)
+import Html exposing (Html, a, div, h1, header, i, img, input, main_, p, span, text)
 import Html.Attributes exposing (alt, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
@@ -304,6 +304,9 @@ getClass state =
         SearchingArtists _ ->
             "search-results"
 
+        ShowingArtistLyrics _ ->
+            "artist"
+
         _ ->
             ""
 
@@ -437,9 +440,13 @@ showArtistLyricsList rootUrl artistSlug artistLyrics =
             showError
 
         Success lyrics ->
-            div
-                [ class "lyric__list" ]
-                (List.map (viewLyricListItem rootUrl artistSlug) lyrics)
+            if List.length lyrics > 0 then
+                div
+                    [ class "lyric__list" ]
+                    (List.map (viewLyricListItem rootUrl artistSlug) lyrics)
+
+            else
+                div [ class "lyric__empty-list" ] [ i [ class "fad fa-pennant lyric__empty-icon" ] [], p [ class "lyric__empty-text" ] [ text "Sorry, no lyrics just yet!" ] ]
 
 
 viewLyricListItem : RootUrl -> Slug -> LyricListItem -> Html Msg
@@ -477,7 +484,7 @@ viewArtistCardOnLyricsList rootUrl artist =
             []
         , h1
             [ class "artist-card__name" ]
-            [ text artist.firstName, text artist.lastName ]
+            [ text artist.firstName, text " ", text artist.lastName ]
         ]
 
 

@@ -1,6 +1,7 @@
 @import "./reset";
 @import "./mixins";
 @import "./variables";
+@import "./artist";
 @import "./lyrics-list";
 
 html {
@@ -68,6 +69,14 @@ main {
 main.search-results {
   justify-content: end;
   margin-bottom: 79px;
+}
+
+main.artist {
+  display: grid;
+  justify-content: center;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  margin-bottom: 100px;
 }
 
 .quote {
