@@ -1,0 +1,19 @@
+.lyric__empty-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.lyric__empty-text {
+  font-family: $opensans;
+  @include fontSize(0.875);
+  color: rgba($white, 0.7);
+  font-weight: 700;
+}
+
+.lyric__empty-icon {
+  @include fontSize(2.5);
+  color: rgba($white, 0.7);
+  margin: 0 0 0.5em 0;
+}
