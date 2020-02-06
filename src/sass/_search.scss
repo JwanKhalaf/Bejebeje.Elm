@@ -54,12 +54,21 @@
 .search__icon {
   @include fontSize(2);
   color: rgba($white, 0.7);
+  width: 0.1px;
+  height: 0.1px;
   opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
   transition: visibility linear 0.2s, opacity linear 0.2s;
   cursor: pointer;
 }
 
 .search:focus-within .search__icon {
-  visibility: visible;
+  position: static;
   opacity: 1;
+  width: auto;
+  height: auto;
+  z-index: inherit;
+  margin: 0 0 0.5em 0;
 }
