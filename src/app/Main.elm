@@ -464,14 +464,14 @@ showArtistLyricsList rootUrl artistSlug artistLyrics =
             if List.length lyrics > 0 then
                 div
                     [ class "lyric__list" ]
-                    (List.map (viewLyricListItem rootUrl artistSlug) lyrics)
+                    (List.map (viewLyricListItem artistSlug) lyrics)
 
             else
                 div [ class "lyric__empty-list" ] [ i [ class "fad fa-pennant lyric__empty-icon" ] [], p [ class "lyric__empty-text" ] [ text "Sorry, no lyrics just yet!" ] ]
 
 
-viewLyricListItem : RootUrl -> Slug -> LyricListItem -> Html Msg
-viewLyricListItem rootUrl artistSlug lyricListItem =
+viewLyricListItem : Slug -> LyricListItem -> Html Msg
+viewLyricListItem artistSlug lyricListItem =
     a
         [ class "lyric-item", href ("/artists/" ++ artistSlug ++ "/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked artistSlug lyricListItem.slug) ]
         [ p

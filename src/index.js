@@ -11,8 +11,3 @@ const app = Elm.Main.init({
   node: document.getElementById("elm-root"),
   flags: { apiRootUrl: API_ROOT_URI }
 });
-
-input.onfocus = function() {
-  window.scrollTo(0, 0);
-  document.body.scrollTop = 0;
-};
