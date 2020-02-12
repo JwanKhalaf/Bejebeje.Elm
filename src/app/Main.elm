@@ -111,7 +111,7 @@ init flags url key =
             Url.fromString flags.apiRootUrl
 
         parsedUrl =
-            Maybe.withDefault NotFound (Parser.parse routeParser url)
+            Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
 
         temp =
             case parsedUrl of
@@ -133,7 +133,7 @@ init flags url key =
                         Nothing ->
                             { commands = Cmd.none, state = Home, artistSlug = Nothing }
 
-                NotFound ->
+                NotFoundRoute ->
                     { commands = Cmd.none, state = Home, artistSlug = Nothing }
     in
     ( Model key url apiRootUrl "" temp.state temp.artistSlug, temp.commands )
@@ -142,7 +142,7 @@ init flags url key =
 type Route
     = HomeRoute
     | ArtistRoute String
-    | NotFound
+    | NotFoundRoute
 
 
 routeParser : Parser (Route -> a) a
@@ -184,7 +184,7 @@ update msg model =
         UrlChanged url ->
             let
                 parsedUrl =
-                    Maybe.withDefault NotFound (Parser.parse routeParser url)
+                    Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
             in
             case parsedUrl of
                 HomeRoute ->
