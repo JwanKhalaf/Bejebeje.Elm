@@ -63,11 +63,17 @@
   cursor: pointer;
 }
 
-.search:focus-within .search__icon {
-  position: static;
-  opacity: 1;
-  width: auto;
-  height: auto;
-  z-index: inherit;
-  margin: 0 0 0.5em 0;
+.search:focus-within {
+  .search__icon {
+    position: static;
+    opacity: 1;
+    width: auto;
+    height: auto;
+    z-index: inherit;
+    margin: 0 0 0.5em 0;
+  }
+
+  .search__input {
+    margin: 0 0 1.25em 0;
+  }
 }
