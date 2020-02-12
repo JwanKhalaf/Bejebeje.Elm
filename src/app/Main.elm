@@ -133,6 +133,17 @@ init flags url key =
                         Nothing ->
                             { commands = Cmd.none, state = Home, artistSlug = Nothing }
 
+                LyricRoute artist lyric ->
+                    case apiRootUrl of
+                        Just rootUrl ->
+                            { commands = getLyric (toString rootUrl) artist lyric
+                            , state = ShowingLyric Loading
+                            , artistSlug = Just artist
+                            }
+
+                        Nothing ->
+                            { commands = Cmd.none, state = Home, artistSlug = Nothing }
+
                 NotFoundRoute ->
                     { commands = Cmd.none, state = Home, artistSlug = Nothing }
     in
@@ -142,6 +153,7 @@ init flags url key =
 type Route
     = HomeRoute
     | ArtistRoute String
+    | LyricRoute String String
     | NotFoundRoute
 
 
@@ -150,6 +162,7 @@ routeParser =
     Parser.oneOf
         [ Parser.map HomeRoute Parser.top
         , Parser.map ArtistRoute (Parser.s "artists" </> Parser.string </> Parser.s "lyrics")
+        , Parser.map LyricRoute (Parser.s "artists" </> Parser.string </> Parser.s "lyrics" </> Parser.string)
         ]
 
 
