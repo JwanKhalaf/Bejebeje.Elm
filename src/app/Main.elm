@@ -2,13 +2,12 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, task)
+import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint)
 import Html exposing (Html, a, div, h1, header, i, img, input, main_, p, span, text)
 import Html.Attributes exposing (alt, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
-import Task exposing (Task)
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
 
@@ -183,9 +182,16 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            ( { model | url = url }
-            , Cmd.none
-            )
+            let
+                parsedUrl =
+                    Maybe.withDefault NotFound (Parser.parse routeParser url)
+            in
+            case parsedUrl of
+                HomeRoute ->
+                    ( { model | url = url, state = Home }, Cmd.none )
+
+                _ ->
+                    ( { model | url = url }, Cmd.none )
 
         SearchQueryChanged searchTerm ->
             if String.isEmpty searchTerm then
@@ -288,14 +294,22 @@ view model =
     , body =
         [ div
             [ class "app" ]
-            [ header
-                []
-                [ showLogo ]
+            [ header [] <| showHeader model.state
             , main_ [ class (getClass model.state) ] <| showState model.apiRootUrl model.state model.activeArtistSlug
             , showSearch model.apiRootUrl model.searchTerm model.state
             ]
         ]
     }
+
+
+showHeader : AppState -> List (Html Msg)
+showHeader state =
+    case state of
+        ShowingArtistLyrics _ ->
+            [ a [ href "/" ] [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+
+        _ ->
+            [ showLogo ]
 
 
 getClass : AppState -> String
