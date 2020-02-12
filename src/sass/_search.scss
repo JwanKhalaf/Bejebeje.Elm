@@ -1,0 +1,73 @@
+.search {
+  position: fixed;
+  left: 1.25em;
+  right: 1.25em;
+  bottom: 1.25em;
+  background-color: $light-grey;
+  padding: 1.2em;
+  border-radius: 2px;
+  transition: all linear 0.2s;
+
+  &:focus-within {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+  }
+}
+
+.search__input {
+  padding: 0.4em 0.8em;
+  width: 100%;
+  border-radius: 2px;
+  background-color: $dark-grey;
+  color: rgba($white, 0.6);
+}
+
+.artist__result {
+  display: flex;
+  align-items: center;
+  background-color: $light-grey;
+  border-radius: 3px;
+  margin: 0 0 1em 0;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba($light-grey, 0.5);
+  }
+}
+
+.artist__name {
+  font-size: 1.2rem;
+  color: $white;
+}
+
+.artist__image {
+  border-radius: 50%;
+  border: 2px solid white;
+  width: 40px;
+  margin: 0 1em 0 0;
+}
+
+.search__icon {
+  @include fontSize(2);
+  color: rgba($white, 0.7);
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+  transition: visibility linear 0.2s, opacity linear 0.2s;
+  cursor: pointer;
+}
+
+.search:focus-within .search__icon {
+  position: static;
+  opacity: 1;
+  width: auto;
+  height: auto;
+  z-index: inherit;
+  margin: 0 0 0.5em 0;
+}

@@ -292,7 +292,7 @@ view model =
                 []
                 [ showLogo ]
             , main_ [ class (getClass model.state) ] <| showState model.apiRootUrl model.state model.activeArtistSlug
-            , showSearch model.searchTerm
+            , showSearch model.apiRootUrl model.searchTerm model.state
             ]
         ]
     }
@@ -317,14 +317,6 @@ showState rootUrl state activeArtistSlug =
         Home ->
             [ showQuote ]
 
-        SearchingArtists artists ->
-            case rootUrl of
-                Nothing ->
-                    [ text "" ]
-
-                Just a ->
-                    [ showArtists (toString a) artists ]
-
         ShowingArtistLyrics artistResult ->
             case ( rootUrl, activeArtistSlug ) of
                 ( Just a, Just artist ) ->
@@ -342,6 +334,9 @@ showState rootUrl state activeArtistSlug =
         ShowingLyric lyric ->
             [ viewLyric lyric ]
 
+        _ ->
+            [ text "" ]
+
 
 showLogo : Html Msg
 showLogo =
@@ -353,12 +348,24 @@ showLogo =
         ]
 
 
-showSearch : String -> Html Msg
-showSearch searchTerm =
+showSearch : Maybe Url -> String -> AppState -> Html Msg
+showSearch rootUrl searchTerm state =
     div [ class "search" ]
-        [ input
+        [ i [ class "far fa-long-arrow-left search__icon" ] []
+        , input
             [ class "search__input", placeholder "Search for artist or lyric", value searchTerm, onInput SearchQueryChanged ]
             []
+        , case state of
+            SearchingArtists artists ->
+                case rootUrl of
+                    Nothing ->
+                        text ""
+
+                    Just a ->
+                        showArtists (toString a) artists
+
+            _ ->
+                text ""
         ]
 
 
