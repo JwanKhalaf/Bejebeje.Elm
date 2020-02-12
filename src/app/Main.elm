@@ -190,6 +190,14 @@ update msg model =
                 HomeRoute ->
                     ( { model | url = url, state = Home }, Cmd.none )
 
+                ArtistRoute slug ->
+                    case model.apiRootUrl of
+                        Just rootUrl ->
+                            ( { model | url = url, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString rootUrl) slug, getArtist (toString rootUrl) slug ] )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
                 _ ->
                     ( { model | url = url }, Cmd.none )
 
@@ -294,7 +302,7 @@ view model =
     , body =
         [ div
             [ class "app" ]
-            [ header [] <| showHeader model.state
+            [ header [] <| showHeader model.state model.activeArtistSlug
             , main_ [ class (getClass model.state) ] <| showState model.apiRootUrl model.state model.activeArtistSlug
             , showSearch model.apiRootUrl model.searchTerm model.state
             ]
@@ -302,11 +310,19 @@ view model =
     }
 
 
-showHeader : AppState -> List (Html Msg)
-showHeader state =
+showHeader : AppState -> Maybe Slug -> List (Html Msg)
+showHeader state artistSlug =
     case state of
         ShowingArtistLyrics _ ->
             [ a [ href "/" ] [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+
+        ShowingLyric _ ->
+            case artistSlug of
+                Just slug ->
+                    [ a [ href ("/artists/" ++ slug ++ "/lyrics") ] [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+
+                Nothing ->
+                    [ text "" ]
 
         _ ->
             [ showLogo ]
