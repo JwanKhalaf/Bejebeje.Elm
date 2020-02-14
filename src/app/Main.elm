@@ -7,17 +7,17 @@ import Html exposing (Html, a, div, h1, header, i, img, input, main_, p, span, t
 import Html.Attributes exposing (alt, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
-import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
+import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
 
 
-main : Program Flags Model Msg
+main : Program Json.Decode.Value Model Msg
 main =
     Browser.application
         { init = init
-        , view = view
-        , update = update
+        , view = topView view
+        , update = topUpdate update
         , subscriptions = subscriptions
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
@@ -90,64 +90,61 @@ type alias WebData a =
 
 
 type alias Flags =
-    { apiRootUrl : String
+    { apiRootUrl : Url
     }
 
 
-type alias Model =
+type alias AppModel =
     { key : Nav.Key
     , url : Url
-    , apiRootUrl : Maybe Url
+    , apiRootUrl : Url
     , searchTerm : String
     , state : AppState
     , activeArtistSlug : Maybe Slug
     }
 
 
-init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
+type Model
+    = AllOk AppModel
+    | FatalError String
+
+
+init : Json.Decode.Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    let
-        apiRootUrl =
-            Url.fromString flags.apiRootUrl
+    case Json.Decode.decodeValue flagsDecoder flags of
+        Err err ->
+            ( FatalError (Json.Decode.errorToString err), Cmd.none )
 
-        parsedUrl =
-            Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
+        Ok f ->
+            let
+                parsedUrl =
+                    Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
 
-        temp =
-            case parsedUrl of
-                HomeRoute ->
-                    { commands = Cmd.none, state = Home, artistSlug = Nothing }
+                temp =
+                    case parsedUrl of
+                        HomeRoute ->
+                            { commands = Cmd.none, state = Home, artistSlug = Nothing }
 
-                ArtistRoute artist ->
-                    case apiRootUrl of
-                        Just rootUrl ->
+                        ArtistRoute artist ->
                             { commands =
                                 Cmd.batch
-                                    [ getLyricsForArtist (Url.toString rootUrl) artist
-                                    , getArtist (toString rootUrl) artist
+                                    [ getLyricsForArtist (Url.toString f.apiRootUrl) artist
+                                    , getArtist (toString f.apiRootUrl) artist
                                     ]
                             , state = ShowingArtistLyrics { artist = Loading, lyrics = Loading }
                             , artistSlug = Just artist
                             }
 
-                        Nothing ->
-                            { commands = Cmd.none, state = Home, artistSlug = Nothing }
-
-                LyricRoute artist lyric ->
-                    case apiRootUrl of
-                        Just rootUrl ->
-                            { commands = getLyric (toString rootUrl) artist lyric
+                        LyricRoute artist lyric ->
+                            { commands = getLyric (toString f.apiRootUrl) artist lyric
                             , state = ShowingLyric Loading
                             , artistSlug = Just artist
                             }
 
-                        Nothing ->
+                        NotFoundRoute ->
                             { commands = Cmd.none, state = Home, artistSlug = Nothing }
-
-                NotFoundRoute ->
-                    { commands = Cmd.none, state = Home, artistSlug = Nothing }
-    in
-    ( Model key url apiRootUrl "" temp.state temp.artistSlug, temp.commands )
+            in
+            ( AllOk (AppModel key url f.apiRootUrl "" temp.state temp.artistSlug), temp.commands )
 
 
 type Route
@@ -183,7 +180,17 @@ type Msg
     | WantToGoHome
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+topUpdate : (Msg -> AppModel -> ( AppModel, Cmd Msg )) -> Msg -> Model -> ( Model, Cmd Msg )
+topUpdate fn msg model =
+    case model of
+        AllOk m ->
+            fn msg m |> Tuple.mapFirst AllOk
+
+        _ ->
+            ( model, Cmd.none )
+
+
+update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update msg model =
     case msg of
         LinkClicked urlRequest ->
@@ -204,12 +211,7 @@ update msg model =
                     ( { model | url = url, state = Home }, Cmd.none )
 
                 ArtistRoute slug ->
-                    case model.apiRootUrl of
-                        Just rootUrl ->
-                            ( { model | url = url, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString rootUrl) slug, getArtist (toString rootUrl) slug ] )
-
-                        Nothing ->
-                            ( model, Cmd.none )
+                    ( { model | url = url, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
 
                 _ ->
                     ( { model | url = url }, Cmd.none )
@@ -219,12 +221,7 @@ update msg model =
                 ( { model | searchTerm = searchTerm, state = Home }, Cmd.none )
 
             else
-                case model.apiRootUrl of
-                    Nothing ->
-                        ( model, Cmd.none )
-
-                    Just rootUrl ->
-                        ( { model | searchTerm = searchTerm }, searchArtists (toString rootUrl) searchTerm )
+                ( { model | searchTerm = searchTerm }, searchArtists (toString model.apiRootUrl) searchTerm )
 
         ArtistsRetrieved result ->
             case result of
@@ -235,12 +232,7 @@ update msg model =
                     ( { model | state = SearchingArtists (Failure error) }, Cmd.none )
 
         ArtistClicked artist ->
-            case model.apiRootUrl of
-                Nothing ->
-                    ( model, Cmd.none )
-
-                Just rootUrl ->
-                    ( { model | searchTerm = "", activeArtistSlug = Just artist.slug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString rootUrl) artist.slug, getArtist (toString rootUrl) artist.slug ] )
+            ( { model | searchTerm = "", activeArtistSlug = Just artist.slug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) artist.slug, getArtist (toString model.apiRootUrl) artist.slug ] )
 
         LyricsRetrieved result ->
             let
@@ -277,12 +269,7 @@ update msg model =
             ( { model | state = temp }, Cmd.none )
 
         LyricClicked artist lyricSlug ->
-            case model.apiRootUrl of
-                Nothing ->
-                    ( model, Cmd.none )
-
-                Just rootUrl ->
-                    ( model, getLyric (toString rootUrl) artist lyricSlug )
+            ( model, getLyric (toString model.apiRootUrl) artist lyricSlug )
 
         LyricRetrieved result ->
             case result of
@@ -309,7 +296,19 @@ subscriptions _ =
 -- view
 
 
-view : Model -> Browser.Document Msg
+topView : (AppModel -> Browser.Document Msg) -> Model -> Browser.Document Msg
+topView viewFunction model =
+    case model of
+        AllOk m ->
+            viewFunction m
+
+        FatalError _ ->
+            { title = "Fatal Error on Bêjebêje"
+            , body = [ text "sorry, something went wrong" ]
+            }
+
+
+view : AppModel -> Browser.Document Msg
 view model =
     { title = "Bêjebêje"
     , body =
@@ -354,7 +353,7 @@ getClass state =
             ""
 
 
-showState : Maybe Url -> AppState -> Maybe Slug -> List (Html Msg)
+showState : Url -> AppState -> Maybe Slug -> List (Html Msg)
 showState rootUrl state activeArtistSlug =
     case state of
         Home ->
@@ -362,7 +361,7 @@ showState rootUrl state activeArtistSlug =
 
         ShowingArtistLyrics artistResult ->
             case ( rootUrl, activeArtistSlug ) of
-                ( Just a, Just artist ) ->
+                ( a, Just artist ) ->
                     [ showArtistDetails (toString a)
                         artistResult.artist
                     , showArtistLyricsList
@@ -391,7 +390,7 @@ showLogo =
         ]
 
 
-showSearch : Maybe Url -> String -> AppState -> Html Msg
+showSearch : Url -> String -> AppState -> Html Msg
 showSearch rootUrl searchTerm state =
     div [ class "search" ]
         [ i [ class "far fa-long-arrow-left search__icon" ] []
@@ -400,12 +399,7 @@ showSearch rootUrl searchTerm state =
             []
         , case state of
             SearchingArtists artists ->
-                case rootUrl of
-                    Nothing ->
-                        text ""
-
-                    Just a ->
-                        showArtists (toString a) artists
+                showArtists (toString rootUrl) artists
 
             _ ->
                 text ""
@@ -612,6 +606,26 @@ getLyric apiRootUrl artistSlug lyricSlug =
 
 
 -- decoders
+
+
+flagsDecoder : Decoder Flags
+flagsDecoder =
+    map Flags
+        (field "apiRootUrl" urlDecoder)
+
+
+urlDecoder : Json.Decode.Decoder Url
+urlDecoder =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\urlString ->
+                case Url.fromString urlString of
+                    Just url ->
+                        Json.Decode.succeed url
+
+                    Nothing ->
+                        Json.Decode.fail <| urlString ++ " is not a valid url."
+            )
 
 
 artistSlugListDecoder : Decoder Slug
