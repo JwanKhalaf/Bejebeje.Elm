@@ -12,12 +12,12 @@ import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
 
 
-main : Program Flags Model Msg
+main : Program Json.Decode.Value Model Msg
 main =
     Browser.application
         { init = init
-        , view = view
-        , update = update
+        , view = topView view
+        , update = topUpdate update
         , subscriptions = subscriptions
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
@@ -94,7 +94,7 @@ type alias Flags =
     }
 
 
-type alias Model =
+type alias AppModel =
     { key : Nav.Key
     , url : Url
     , apiRootUrl : Url
@@ -104,50 +104,47 @@ type alias Model =
     }
 
 
-init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
+type Model
+    = AllOk AppModel
+    | FatalError String
+
+
+init : Json.Decode.Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    let
-        apiRootUrl =
-            flags.apiRootUrl
+    case Json.Decode.decodeValue flagsDecoder flags of
+        Err err ->
+            ( FatalError (Json.Decode.errorToString err), Cmd.none )
 
-        parsedUrl =
-            Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
+        Ok f ->
+            let
+                parsedUrl =
+                    Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
 
-        temp =
-            case parsedUrl of
-                HomeRoute ->
-                    { commands = Cmd.none, state = Home, artistSlug = Nothing }
+                temp =
+                    case parsedUrl of
+                        HomeRoute ->
+                            { commands = Cmd.none, state = Home, artistSlug = Nothing }
 
-                ArtistRoute artist ->
-                    case apiRootUrl of
-                        Just rootUrl ->
+                        ArtistRoute artist ->
                             { commands =
                                 Cmd.batch
-                                    [ getLyricsForArtist (Url.toString rootUrl) artist
-                                    , getArtist (toString rootUrl) artist
+                                    [ getLyricsForArtist (Url.toString f.apiRootUrl) artist
+                                    , getArtist (toString f.apiRootUrl) artist
                                     ]
                             , state = ShowingArtistLyrics { artist = Loading, lyrics = Loading }
                             , artistSlug = Just artist
                             }
 
-                        Nothing ->
-                            { commands = Cmd.none, state = Home, artistSlug = Nothing }
-
-                LyricRoute artist lyric ->
-                    case apiRootUrl of
-                        Just rootUrl ->
-                            { commands = getLyric (toString rootUrl) artist lyric
+                        LyricRoute artist lyric ->
+                            { commands = getLyric (toString f.apiRootUrl) artist lyric
                             , state = ShowingLyric Loading
                             , artistSlug = Just artist
                             }
 
-                        Nothing ->
+                        NotFoundRoute ->
                             { commands = Cmd.none, state = Home, artistSlug = Nothing }
-
-                NotFoundRoute ->
-                    { commands = Cmd.none, state = Home, artistSlug = Nothing }
-    in
-    ( Model key url apiRootUrl "" temp.state temp.artistSlug, temp.commands )
+            in
+            ( AllOk (AppModel key url f.apiRootUrl "" temp.state temp.artistSlug), temp.commands )
 
 
 type Route
@@ -183,7 +180,17 @@ type Msg
     | WantToGoHome
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+topUpdate : (Msg -> AppModel -> ( AppModel, Cmd Msg )) -> Msg -> Model -> ( Model, Cmd Msg )
+topUpdate fn msg model =
+    case model of
+        AllOk m ->
+            fn msg m |> Tuple.mapFirst AllOk
+
+        _ ->
+            ( model, Cmd.none )
+
+
+update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update msg model =
     case msg of
         LinkClicked urlRequest ->
@@ -289,7 +296,19 @@ subscriptions _ =
 -- view
 
 
-view : Model -> Browser.Document Msg
+topView : (AppModel -> Browser.Document Msg) -> Model -> Browser.Document Msg
+topView viewFunction model =
+    case model of
+        AllOk m ->
+            viewFunction m
+
+        FatalError _ ->
+            { title = "Fatal Error on Bêjebêje"
+            , body = [ text "sorry, something went wrong" ]
+            }
+
+
+view : AppModel -> Browser.Document Msg
 view model =
     { title = "Bêjebêje"
     , body =
