@@ -7,7 +7,7 @@ import Html exposing (Html, a, div, h1, header, i, img, input, main_, p, span, t
 import Html.Attributes exposing (alt, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
-import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map2, map3, string, succeed)
+import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
 
@@ -90,7 +90,7 @@ type alias WebData a =
 
 
 type alias Flags =
-    { apiRootUrl : String
+    { apiRootUrl : Url
     }
 
 
@@ -108,7 +108,7 @@ init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
         apiRootUrl =
-            Url.fromString flags.apiRootUrl
+            flags.apiRootUrl
 
         parsedUrl =
             Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
@@ -587,6 +587,26 @@ getLyric apiRootUrl artistSlug lyricSlug =
 
 
 -- decoders
+
+
+flagsDecoder : Decoder Flags
+flagsDecoder =
+    map Flags
+        (field "apiRootUrl" urlDecoder)
+
+
+urlDecoder : Json.Decode.Decoder Url
+urlDecoder =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\urlString ->
+                case Url.fromString urlString of
+                    Just url ->
+                        Json.Decode.succeed url
+
+                    Nothing ->
+                        Json.Decode.fail <| urlString ++ " is not a valid url."
+            )
 
 
 artistSlugListDecoder : Decoder Slug
