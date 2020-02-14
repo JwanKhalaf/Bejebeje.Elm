@@ -97,7 +97,7 @@ type alias Flags =
 type alias Model =
     { key : Nav.Key
     , url : Url
-    , apiRootUrl : Maybe Url
+    , apiRootUrl : Url
     , searchTerm : String
     , state : AppState
     , activeArtistSlug : Maybe Slug
@@ -204,12 +204,7 @@ update msg model =
                     ( { model | url = url, state = Home }, Cmd.none )
 
                 ArtistRoute slug ->
-                    case model.apiRootUrl of
-                        Just rootUrl ->
-                            ( { model | url = url, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString rootUrl) slug, getArtist (toString rootUrl) slug ] )
-
-                        Nothing ->
-                            ( model, Cmd.none )
+                    ( { model | url = url, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
 
                 _ ->
                     ( { model | url = url }, Cmd.none )
@@ -219,12 +214,7 @@ update msg model =
                 ( { model | searchTerm = searchTerm, state = Home }, Cmd.none )
 
             else
-                case model.apiRootUrl of
-                    Nothing ->
-                        ( model, Cmd.none )
-
-                    Just rootUrl ->
-                        ( { model | searchTerm = searchTerm }, searchArtists (toString rootUrl) searchTerm )
+                ( { model | searchTerm = searchTerm }, searchArtists (toString model.apiRootUrl) searchTerm )
 
         ArtistsRetrieved result ->
             case result of
@@ -235,12 +225,7 @@ update msg model =
                     ( { model | state = SearchingArtists (Failure error) }, Cmd.none )
 
         ArtistClicked artist ->
-            case model.apiRootUrl of
-                Nothing ->
-                    ( model, Cmd.none )
-
-                Just rootUrl ->
-                    ( { model | searchTerm = "", activeArtistSlug = Just artist.slug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString rootUrl) artist.slug, getArtist (toString rootUrl) artist.slug ] )
+            ( { model | searchTerm = "", activeArtistSlug = Just artist.slug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) artist.slug, getArtist (toString model.apiRootUrl) artist.slug ] )
 
         LyricsRetrieved result ->
             let
@@ -277,12 +262,7 @@ update msg model =
             ( { model | state = temp }, Cmd.none )
 
         LyricClicked artist lyricSlug ->
-            case model.apiRootUrl of
-                Nothing ->
-                    ( model, Cmd.none )
-
-                Just rootUrl ->
-                    ( model, getLyric (toString rootUrl) artist lyricSlug )
+            ( model, getLyric (toString model.apiRootUrl) artist lyricSlug )
 
         LyricRetrieved result ->
             case result of
@@ -354,7 +334,7 @@ getClass state =
             ""
 
 
-showState : Maybe Url -> AppState -> Maybe Slug -> List (Html Msg)
+showState : Url -> AppState -> Maybe Slug -> List (Html Msg)
 showState rootUrl state activeArtistSlug =
     case state of
         Home ->
@@ -362,7 +342,7 @@ showState rootUrl state activeArtistSlug =
 
         ShowingArtistLyrics artistResult ->
             case ( rootUrl, activeArtistSlug ) of
-                ( Just a, Just artist ) ->
+                ( a, Just artist ) ->
                     [ showArtistDetails (toString a)
                         artistResult.artist
                     , showArtistLyricsList
@@ -391,7 +371,7 @@ showLogo =
         ]
 
 
-showSearch : Maybe Url -> String -> AppState -> Html Msg
+showSearch : Url -> String -> AppState -> Html Msg
 showSearch rootUrl searchTerm state =
     div [ class "search" ]
         [ i [ class "far fa-long-arrow-left search__icon" ] []
@@ -400,12 +380,7 @@ showSearch rootUrl searchTerm state =
             []
         , case state of
             SearchingArtists artists ->
-                case rootUrl of
-                    Nothing ->
-                        text ""
-
-                    Just a ->
-                        showArtists (toString a) artists
+                showArtists (toString rootUrl) artists
 
             _ ->
                 text ""
