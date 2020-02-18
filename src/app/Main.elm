@@ -410,9 +410,9 @@ showQuote : Html Msg
 showQuote =
     div [ class "quote" ]
         [ p [ class "quote__text" ]
-            [ text "Those who wish to sing always find a song." ]
+            [ text "Kurd ji hev cuda dilopên baranê ne, cihê cihê têne daqurtandin. Ko gihane hev debin lehî, lehîke boş. Tu kes, tu tişt li ber wan nikare bisekine. Felata welatê me di rabûna vê lehiyê de ye." ]
         , p [ class "quote__author" ]
-            [ text "Swedish proverb" ]
+            [ text "Celadet Alî Bedirxan" ]
         ]
 
 
