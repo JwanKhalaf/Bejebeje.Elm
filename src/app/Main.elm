@@ -395,7 +395,7 @@ showSearch rootUrl searchTerm state =
     div [ class "search" ]
         [ i [ class "far fa-long-arrow-left search__icon" ] []
         , input
-            [ class "search__input", placeholder "Search for artist or lyric", value searchTerm, onInput SearchQueryChanged ]
+            [ class "search__input", placeholder "Li hunermend bigere", value searchTerm, onInput SearchQueryChanged ]
             []
         , case state of
             SearchingArtists artists ->
