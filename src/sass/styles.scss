@@ -86,8 +86,11 @@ main.search-results {
 }
 
 .lyric__body {
-  color: $white;
+  color: rgba($white, 0.65);
   white-space: pre-wrap;
+  font-family: $lora;
+  @include fontSize(1);
+  font-weight: 700;
 }
 
 .card {
