@@ -69,6 +69,17 @@ main.search-results {
 
 .quote {
   margin: 0 0 1em 0;
+  position: relative;
+
+  &::before {
+    content: "“";
+    position: absolute;
+    left: -0.05em;
+    top: 0.25em;
+    color: rgba(#414658, 0.6);
+    font-size: 20rem;
+    z-index: -1;
+  }
 }
 
 .quote__text {
