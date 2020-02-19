@@ -4,7 +4,7 @@ import Browser exposing (application)
 import Browser.Navigation as Nav
 import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint)
 import Html exposing (Html, a, div, h1, header, i, img, input, main_, p, span, text)
-import Html.Attributes exposing (alt, class, href, placeholder, src, value)
+import Html.Attributes exposing (alt, class, href, placeholder, src, value, attribute)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
@@ -326,7 +326,7 @@ showHeader : AppState -> Maybe Slug -> List (Html Msg)
 showHeader state artistSlug =
     case state of
         ShowingArtistLyrics _ ->
-            [ a [ href "/" ] [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+            [ a [ href "/", attribute "role" "button", attribute "aria-label" "Back" ] [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
 
         ShowingLyric _ ->
             case artistSlug of
@@ -392,10 +392,10 @@ showLogo =
 
 showSearch : Url -> String -> AppState -> Html Msg
 showSearch rootUrl searchTerm state =
-    div [ class "search" ]
+    div [ class "search", attribute "role" "search" ]
         [ i [ class "far fa-long-arrow-left search__icon" ] []
         , input
-            [ class "search__input", placeholder "Li hunermend bigere", value searchTerm, onInput SearchQueryChanged ]
+            [ class "search__input", placeholder "Li hunermend bigere", value searchTerm, onInput SearchQueryChanged, attribute "aria-label" "search" ]
             []
         , case state of
             SearchingArtists artists ->
