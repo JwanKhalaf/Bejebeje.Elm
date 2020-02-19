@@ -4,7 +4,6 @@ node_js:
 branches:
   only:
     - master
-    - feature/update-travis-image
 before_script:
   - chmod -R a+x scripts
 script:
