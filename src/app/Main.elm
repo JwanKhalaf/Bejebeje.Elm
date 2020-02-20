@@ -448,7 +448,7 @@ viewArtist : RootUrl -> Artist -> Html Msg
 viewArtist rootUrl artist =
     a
         [ class "artist__result", href ("/artists/" ++ artist.slug ++ "/lyrics"), onClick (ArtistClicked artist) ]
-        [ img [ class "artist__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image") ] []
+        [ img [ class "artist__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image"), alt (artist.firstName ++ " " ++ artist.lastName) ] []
         , p
             [ class "artist__name" ]
             [ text (artist.firstName ++ " " ++ artist.lastName) ]
@@ -524,7 +524,7 @@ viewArtistCardOnLyricsList rootUrl artist =
     div
         [ class "card artist-card" ]
         [ img
-            [ class "artist-card__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image") ]
+            [ class "artist-card__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image"), alt (artist.firstName ++ " " ++ artist.lastName) ]
             []
         , h1
             [ class "artist-card__name" ]

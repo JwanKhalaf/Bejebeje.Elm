@@ -63,7 +63,12 @@
   cursor: pointer;
 }
 
-.search:focus-within {
+body:focus-within {
+  body {
+    position: fixed;
+    overscroll-behavior: contain;
+  }
+
   .search__icon {
     position: static;
     opacity: 1;
