@@ -10,6 +10,7 @@ import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
+import Route exposing (Route)
 
 
 main : Program Json.Decode.Value Model Msg
@@ -118,14 +119,14 @@ init flags url key =
         Ok f ->
             let
                 parsedUrl =
-                    Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
+                    Maybe.withDefault Route.NotFoundRoute (Parser.parse Route.parser url)
 
                 temp =
                     case parsedUrl of
-                        HomeRoute ->
+                        Route.HomeRoute ->
                             { commands = Cmd.none, state = Home, artistSlug = Nothing }
 
-                        ArtistRoute artist ->
+                        Route.ArtistRoute artist ->
                             { commands =
                                 Cmd.batch
                                     [ getLyricsForArtist (Url.toString f.apiRootUrl) artist
@@ -135,32 +136,16 @@ init flags url key =
                             , artistSlug = Just artist
                             }
 
-                        LyricRoute artist lyric ->
+                        Route.LyricRoute artist lyric ->
                             { commands = getLyric (toString f.apiRootUrl) artist lyric
                             , state = ShowingLyric Loading
                             , artistSlug = Just artist
                             }
 
-                        NotFoundRoute ->
+                        Route.NotFoundRoute ->
                             { commands = Cmd.none, state = Home, artistSlug = Nothing }
             in
             ( AllOk (AppModel key url f.apiRootUrl "" temp.state temp.artistSlug), temp.commands )
-
-
-type Route
-    = HomeRoute
-    | ArtistRoute String
-    | LyricRoute String String
-    | NotFoundRoute
-
-
-routeParser : Parser (Route -> a) a
-routeParser =
-    Parser.oneOf
-        [ Parser.map HomeRoute Parser.top
-        , Parser.map ArtistRoute (Parser.s "artists" </> Parser.string </> Parser.s "lyrics")
-        , Parser.map LyricRoute (Parser.s "artists" </> Parser.string </> Parser.s "lyrics" </> Parser.string)
-        ]
 
 
 
@@ -204,13 +189,13 @@ update msg model =
         UrlChanged url ->
             let
                 parsedUrl =
-                    Maybe.withDefault NotFoundRoute (Parser.parse routeParser url)
+                    Maybe.withDefault Route.NotFoundRoute (Parser.parse Route.parser url)
             in
             case parsedUrl of
-                HomeRoute ->
+                Route.HomeRoute ->
                     ( { model | url = url, state = Home }, Cmd.none )
 
-                ArtistRoute slug ->
+                Route.ArtistRoute slug ->
                     ( { model | url = url, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
 
                 _ ->
