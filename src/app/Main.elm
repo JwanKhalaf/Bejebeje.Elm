@@ -4,13 +4,13 @@ import Browser exposing (application)
 import Browser.Navigation as Nav
 import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint)
 import Html exposing (Html, a, div, h1, h2, header, i, img, input, main_, p, span, text)
-import Html.Attributes exposing (alt, class, href, placeholder, src, value, attribute)
+import Html.Attributes exposing (alt, attribute, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
-import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
+import Json.Decode exposing (Decoder, andThen, bool, fail, field, int, list, map, map2, map4, string, succeed)
+import Route exposing (Route)
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
-import Route exposing (Route)
 
 
 main : Program Json.Decode.Value Model Msg
@@ -52,6 +52,7 @@ type alias Artist =
     { firstName : String
     , lastName : String
     , slug : Slug
+    , imageId : Int
     }
 
 
@@ -348,7 +349,8 @@ showState rootUrl state activeArtistSlug =
             case ( rootUrl, activeArtistSlug ) of
                 ( a, Just artist ) ->
                     [ showArtistDetails (toString a)
-                        artistResult.artist artistResult.lyrics
+                        artistResult.artist
+                        artistResult.lyrics
                     , showArtistLyricsList
                         (toString a)
                         artist
@@ -433,7 +435,7 @@ viewArtist : RootUrl -> Artist -> Html Msg
 viewArtist rootUrl artist =
     a
         [ class "artist__result", href ("/artists/" ++ artist.slug ++ "/lyrics"), onClick (ArtistClicked artist) ]
-        [ img [ class "artist__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image"), alt (artist.firstName ++ " " ++ artist.lastName) ] []
+        [ img [ class "artist__image", src (showImagePath rootUrl artist), alt (artist.firstName ++ " " ++ artist.lastName) ] []
         , p
             [ class "artist__name" ]
             [ text (artist.firstName ++ " " ++ artist.lastName) ]
@@ -509,16 +511,27 @@ viewArtistCardOnLyricsList rootUrl artist lyricsData =
     div
         [ class "card artist-card" ]
         [ img
-            [ class "artist-card__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image"), alt (artist.firstName ++ " " ++ artist.lastName) ]
+            [ class "artist-card__image", src (showImagePath rootUrl artist), alt (artist.firstName ++ " " ++ artist.lastName) ]
             []
-        , div [ class "artist-card__meta" ] [
-        h1
-            [ class "artist-card__name" ]
-            [ text artist.firstName, text " ", text artist.lastName ]
-        , h2
-            [ class "artist-card__lyric-count" ]
-            [ showLyricCount lyricsData ]]
+        , div [ class "artist-card__meta" ]
+            [ h1
+                [ class "artist-card__name" ]
+                [ text artist.firstName, text " ", text artist.lastName ]
+            , h2
+                [ class "artist-card__lyric-count" ]
+                [ showLyricCount lyricsData ]
+            ]
         ]
+
+
+showImagePath : RootUrl -> Artist -> String
+showImagePath rootUrl artist =
+    if artist.imageId == 0 then
+        "/images/no-photo.jpg"
+
+    else
+        rootUrl ++ "artists/" ++ artist.slug ++ "/image"
+
 
 showLyricCount : WebData (List LyricListItem) -> Html Msg
 showLyricCount lyricData =
@@ -533,7 +546,9 @@ showLyricCount lyricData =
             showError
 
         Success lyrics ->
-            text ((String.fromInt (List.length lyrics)) ++ " Stran")
+            text (String.fromInt (List.length lyrics) ++ " Stran")
+
+
 
 -- http
 
@@ -653,18 +668,20 @@ artistSlugDecoder =
 
 artistDecoder : Decoder Artist
 artistDecoder =
-    map3 Artist
+    map4 Artist
         (field "firstName" string)
         (field "lastName" string)
         (field "slugs" artistSlugListDecoder)
+        (field "imageId" int)
 
 
 artistDetailsDecoder : Decoder Artist
 artistDetailsDecoder =
-    map3 Artist
+    map4 Artist
         (field "firstName" string)
         (field "lastName" string)
         (field "slug" string)
+        (field "imageId" int)
 
 
 artistListDecoder : Decoder (List Artist)
