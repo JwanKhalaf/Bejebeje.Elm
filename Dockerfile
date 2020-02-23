@@ -29,6 +29,9 @@ WORKDIR /app
 # from local machine to /app (in the container).
 COPY . .
 
+# list files
+RUN ls -l
+
 # install packages
 RUN npm install
 
