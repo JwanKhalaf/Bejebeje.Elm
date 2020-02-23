@@ -1,3 +1,10 @@
+.artist-card__lyric-count {
+  @include fontSize(1.125);
+  color: rgba($white, 0.55);
+  font-family: $lora;
+  font-weight: 700;
+}
+
 .lyric-item {
   display: flex;
   align-items: center;

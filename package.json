@@ -22,8 +22,8 @@
     "elm-hot": "^1.1.4",
     "node-elm-compiler": "^5.0.4",
     "parcel-bundler": "^1.12.4",
-    "parcel-plugin-static-files-copy": "^2.2.1",
-    "sass": "^1.24.0"
+    "parcel-plugin-static-files-copy": "^2.3.1",
+    "sass": "^1.25.0"
   },
   "dependencies": {
     "app": "^0.1.0"
