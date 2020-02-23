@@ -4,7 +4,6 @@ node_js:
 branches:
   only:
     - master
-    - bug/copy-assets-over
 before_script:
   - chmod -R a+x scripts
 script:
