@@ -2,7 +2,7 @@
 FROM alpine:3.11.2 AS builder
 
 # set maintainer
-MAINTAINER Jwan Khalaf <jwan.khalaf@outlook.com>
+MAINTAINER Jwan Khalaf <jkhalaf@bejebeje.com>
 
 # download the elm compiler and extract it to /user/local/bin/elm
 RUN wget -O - 'https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz' \
@@ -40,4 +40,4 @@ RUN npm run deploy
 FROM nginx:1.17.7-alpine
 
 # copy deploy artifacts
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist/ /usr/share/nginx/html
