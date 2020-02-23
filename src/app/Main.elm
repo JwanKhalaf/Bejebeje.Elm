@@ -3,7 +3,7 @@ module Main exposing (..)
 import Browser exposing (application)
 import Browser.Navigation as Nav
 import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint)
-import Html exposing (Html, a, div, h1, header, i, img, input, main_, p, span, text)
+import Html exposing (Html, a, div, h1, h2, header, i, img, input, main_, p, span, text)
 import Html.Attributes exposing (alt, class, href, placeholder, src, value, attribute)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
@@ -348,7 +348,7 @@ showState rootUrl state activeArtistSlug =
             case ( rootUrl, activeArtistSlug ) of
                 ( a, Just artist ) ->
                     [ showArtistDetails (toString a)
-                        artistResult.artist
+                        artistResult.artist artistResult.lyrics
                     , showArtistLyricsList
                         (toString a)
                         artist
@@ -440,8 +440,8 @@ viewArtist rootUrl artist =
         ]
 
 
-showArtistDetails : RootUrl -> WebData Artist -> Html Msg
-showArtistDetails rootUrl artist =
+showArtistDetails : RootUrl -> WebData Artist -> WebData (List LyricListItem) -> Html Msg
+showArtistDetails rootUrl artist lyricsData =
     case artist of
         NotAsked ->
             text ""
@@ -453,7 +453,7 @@ showArtistDetails rootUrl artist =
             showError
 
         Success a ->
-            viewArtistCardOnLyricsList rootUrl a
+            viewArtistCardOnLyricsList rootUrl a lyricsData
 
 
 showArtistLyricsList : RootUrl -> Slug -> WebData (List LyricListItem) -> Html Msg
@@ -475,7 +475,7 @@ showArtistLyricsList rootUrl artistSlug artistLyrics =
                     (List.map (viewLyricListItem artistSlug) lyrics)
 
             else
-                div [ class "lyric__empty-list" ] [ i [ class "fad fa-pennant lyric__empty-icon" ] [], p [ class "lyric__empty-text" ] [ text "Sorry, no lyrics just yet!" ] ]
+                div [ class "lyric__empty-list" ] [ i [ class "fad fa-pennant lyric__empty-icon" ] [], p [ class "lyric__empty-text" ] [ text "Bibure, vê demê stran tune ne!" ] ]
 
 
 viewLyricListItem : Slug -> LyricListItem -> Html Msg
@@ -504,19 +504,36 @@ viewLyric lyric =
             p [ class "lyric__body" ] [ text lyricData.body ]
 
 
-viewArtistCardOnLyricsList : RootUrl -> Artist -> Html Msg
-viewArtistCardOnLyricsList rootUrl artist =
+viewArtistCardOnLyricsList : RootUrl -> Artist -> WebData (List LyricListItem) -> Html Msg
+viewArtistCardOnLyricsList rootUrl artist lyricsData =
     div
         [ class "card artist-card" ]
         [ img
             [ class "artist-card__image", src (rootUrl ++ "artists/" ++ artist.slug ++ "/image"), alt (artist.firstName ++ " " ++ artist.lastName) ]
             []
-        , h1
+        , div [ class "artist-card__meta" ] [
+        h1
             [ class "artist-card__name" ]
             [ text artist.firstName, text " ", text artist.lastName ]
+        , h2
+            [ class "artist-card__lyric-count" ]
+            [ showLyricCount lyricsData ]]
         ]
 
+showLyricCount : WebData (List LyricListItem) -> Html Msg
+showLyricCount lyricData =
+    case lyricData of
+        NotAsked ->
+            text ""
 
+        Loading ->
+            showLoader
+
+        Failure _ ->
+            showError
+
+        Success lyrics ->
+            text ((String.fromInt (List.length lyrics)) ++ " Stran")
 
 -- http
 
