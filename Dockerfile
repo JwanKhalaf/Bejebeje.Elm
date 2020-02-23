@@ -35,6 +35,9 @@ RUN npm install
 # build elm production code
 RUN npm run deploy
 
+# list files
+RUN ls -l dist/
+
 # create a fresh image, this will be a light image because we are only
 # going to put in it the built assets and nothing else.
 FROM nginx:1.17.7-alpine
