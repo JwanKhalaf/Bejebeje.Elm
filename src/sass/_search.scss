@@ -41,6 +41,13 @@
       @include fontSize(1);
       font-family: $lora;
       color: rgba($white, 0.85);
+      font-weight: 700;
+    }
+
+    .search__lyric-artist-name {
+      @include fontSize(1);
+      font-family: $opensans;
+      color: rgba($white, 0.85);
     }
 
     &:visited {
