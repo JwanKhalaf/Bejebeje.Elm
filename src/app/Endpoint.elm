@@ -1,4 +1,4 @@
-module Endpoint exposing (Endpoint, artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, task)
+module Endpoint exposing (Endpoint, artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, searchLyricsEndpoint, task)
 
 import Http exposing (Body, Expect, Header, request)
 import Task exposing (Task)
@@ -69,8 +69,13 @@ url root paths queryParams =
 
 
 searchArtistsEndpoint : String -> String -> Endpoint
-searchArtistsEndpoint root searchTerm =
-    url root [ "artists" ] [ string "name" searchTerm ]
+searchArtistsEndpoint root artistName =
+    url root [ "artists" ] [ string "name" artistName ]
+
+
+searchLyricsEndpoint : String -> String -> Endpoint
+searchLyricsEndpoint root lyricTitle =
+    url root [ "lyrics" ] [ string "title" lyricTitle ]
 
 
 artistDetailsEndpoint : String -> String -> Endpoint

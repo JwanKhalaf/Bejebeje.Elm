@@ -2,12 +2,12 @@ module Main exposing (..)
 
 import Browser exposing (application)
 import Browser.Navigation as Nav
-import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint)
-import Html exposing (Html, a, div, h1, h2, header, i, img, input, main_, p, span, text)
+import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, searchLyricsEndpoint)
+import Html exposing (Html, a, div, h1, h2, header, hr, i, img, input, main_, p, span, text)
 import Html.Attributes exposing (alt, attribute, class, href, placeholder, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
-import Json.Decode exposing (Decoder, andThen, bool, fail, field, int, list, map, map2, map4, string, succeed)
+import Json.Decode exposing (Decoder, andThen, bool, fail, field, int, list, map, map2, map3, map4, string, succeed)
 import Route exposing (Route)
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
@@ -32,7 +32,7 @@ main =
 type AppState
     = ShowingLyric (WebData Lyric)
     | ShowingArtistLyrics ArtistRestult
-    | SearchingArtists (WebData (List Artist))
+    | Searching SearchResult
     | Home
 
 
@@ -49,16 +49,29 @@ type alias RootUrl =
 
 
 type alias Artist =
-    { firstName : String
-    , lastName : String
-    , slug : Slug
-    , imageId : Int
+    { fullName : String
+    , hasImage : Bool
+    , primarySlug : Slug
     }
 
 
 type alias LyricListItem =
     { title : String
-    , slug : String
+    , slug : Slug
+    }
+
+
+type alias LyricSearchArtistResult =
+    { fullName : String
+    , primarySlug : Slug
+    , hasImage : Bool
+    }
+
+
+type alias LyricSearchResult =
+    { title : String
+    , primarySlug : Slug
+    , artist : LyricSearchArtistResult
     }
 
 
@@ -77,6 +90,12 @@ type alias ArtistSlug =
 type alias ArtistRestult =
     { artist : WebData Artist
     , lyrics : WebData (List LyricListItem)
+    }
+
+
+type alias SearchResult =
+    { artists : WebData (List Artist)
+    , lyrics : WebData (List LyricSearchResult)
     }
 
 
@@ -157,7 +176,8 @@ type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
     | SearchQueryChanged String
-    | ArtistsRetrieved (Result Http.Error (List Artist))
+    | RetrievedArtistSearchResults (Result Http.Error (List Artist))
+    | RetrievedLyricSearchResults (Result Http.Error (List LyricSearchResult))
     | ArtistClicked Artist
     | LyricsRetrieved (Result Http.Error (List LyricListItem))
     | ArtistDetailsRetrieved (Result Http.Error Artist)
@@ -207,18 +227,44 @@ update msg model =
                 ( { model | searchTerm = searchTerm, state = Home }, Cmd.none )
 
             else
-                ( { model | searchTerm = searchTerm }, searchArtists (toString model.apiRootUrl) searchTerm )
+                ( { model | searchTerm = searchTerm, state = Searching { artists = Loading, lyrics = Loading } }, Cmd.batch [ searchArtists (toString model.apiRootUrl) searchTerm, searchLyrics (toString model.apiRootUrl) searchTerm ] )
 
-        ArtistsRetrieved result ->
-            case result of
-                Ok artists ->
-                    ( { model | state = SearchingArtists (Success artists) }, Cmd.none )
+        RetrievedArtistSearchResults result ->
+            let
+                temp =
+                    case model.state of
+                        Searching a ->
+                            case result of
+                                Ok artists ->
+                                    Searching { a | artists = Success artists }
 
-                Err error ->
-                    ( { model | state = SearchingArtists (Failure error) }, Cmd.none )
+                                Err error ->
+                                    Searching { a | artists = Failure error }
+
+                        _ ->
+                            model.state
+            in
+            ( { model | state = temp }, Cmd.none )
+
+        RetrievedLyricSearchResults result ->
+            let
+                temp =
+                    case model.state of
+                        Searching a ->
+                            case result of
+                                Ok lyricSearchResults ->
+                                    Searching { a | lyrics = Success lyricSearchResults }
+
+                                Err error ->
+                                    Searching { a | lyrics = Failure error }
+
+                        _ ->
+                            model.state
+            in
+            ( { model | state = temp }, Cmd.none )
 
         ArtistClicked artist ->
-            ( { model | searchTerm = "", activeArtistSlug = Just artist.slug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) artist.slug, getArtist (toString model.apiRootUrl) artist.slug ] )
+            ( { model | searchTerm = "", activeArtistSlug = Just artist.primarySlug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) artist.primarySlug, getArtist (toString model.apiRootUrl) artist.primarySlug ] )
 
         LyricsRetrieved result ->
             let
@@ -329,7 +375,7 @@ showHeader state artistSlug =
 getClass : AppState -> String
 getClass state =
     case state of
-        SearchingArtists _ ->
+        Searching _ ->
             "search-results"
 
         ShowingArtistLyrics _ ->
@@ -385,8 +431,14 @@ showSearch rootUrl searchTerm state =
             [ class "search__input", placeholder "Li hunermend bigere", value searchTerm, onInput SearchQueryChanged, attribute "aria-label" "search" ]
             []
         , case state of
-            SearchingArtists artists ->
-                showArtists (toString rootUrl) artists
+            Searching result ->
+                showArtists (toString rootUrl) result.artists
+
+            _ ->
+                text ""
+        , case state of
+            Searching result ->
+                showLyricSearchResults (toString rootUrl) result.lyrics
 
             _ ->
                 text ""
@@ -426,19 +478,66 @@ showArtists rootUrl artistData =
             showError
 
         Success artists ->
-            div
-                [ class "artist__list" ]
-                (List.map (viewArtist rootUrl) artists)
+            if List.length artists > 0 then
+                div
+                    [ class "search__artists-wrap" ]
+                    [ h2 [ class "search__sub-heading" ] [ text "Hunermend" ]
+                    , hr [ class "search__ruler" ] []
+                    , div [ class "search__artists-results" ] (List.map (viewArtist rootUrl) artists)
+                    ]
+
+            else
+                text ""
+
+
+showLyricSearchResults : RootUrl -> WebData (List LyricSearchResult) -> Html Msg
+showLyricSearchResults rootUrl lyricSearchResults =
+    case lyricSearchResults of
+        NotAsked ->
+            showQuote
+
+        Loading ->
+            showLoader
+
+        Failure _ ->
+            showError
+
+        Success lyrics ->
+            if List.length lyrics > 0 then
+                div
+                    [ class "search__lyrics-wrap" ]
+                    [ h2 [ class "search__sub-heading" ] [ text "Stran" ]
+                    , hr [ class "search__ruler" ] []
+                    , div [ class "search__lyrics-results" ] (List.map (viewLyricSearchResult rootUrl) lyrics)
+                    ]
+
+            else
+                text ""
+
+
+viewLyricSearchResult : RootUrl -> LyricSearchResult -> Html Msg
+viewLyricSearchResult rootUrl lyricSearchResult =
+    a
+        [ class "lyric__search-result", href ("/artists/" ++ lyricSearchResult.artist.primarySlug ++ "/lyrics") ]
+        [ img [ class "search__artist-image", src (showImagePath rootUrl True lyricSearchResult.artist.primarySlug), alt lyricSearchResult.artist.fullName ] []
+        , div [ class "search__lyric-info" ]
+            [ p
+                [ class "search__lyric-title" ]
+                [ text lyricSearchResult.title ]
+            , p [ class "search__lyric-artist-name" ]
+                [ text lyricSearchResult.artist.fullName ]
+            ]
+        ]
 
 
 viewArtist : RootUrl -> Artist -> Html Msg
 viewArtist rootUrl artist =
     a
-        [ class "artist__result", href ("/artists/" ++ artist.slug ++ "/lyrics"), onClick (ArtistClicked artist) ]
-        [ img [ class "artist__image", src (showImagePath rootUrl artist), alt (artist.firstName ++ " " ++ artist.lastName) ] []
+        [ class "artist__result", href ("/artists/" ++ artist.primarySlug ++ "/lyrics"), onClick (ArtistClicked artist) ]
+        [ img [ class "search__artist-image", src (showImagePath rootUrl True artist.primarySlug), alt artist.fullName ] []
         , p
             [ class "artist__name" ]
-            [ text (artist.firstName ++ " " ++ artist.lastName) ]
+            [ text artist.fullName ]
         ]
 
 
@@ -511,12 +610,12 @@ viewArtistCardOnLyricsList rootUrl artist lyricsData =
     div
         [ class "card artist-card" ]
         [ img
-            [ class "artist-card__image", src (showImagePath rootUrl artist), alt (artist.firstName ++ " " ++ artist.lastName) ]
+            [ class "artist-card__image", src (showImagePath rootUrl True artist.primarySlug), alt artist.fullName ]
             []
         , div [ class "artist-card__meta" ]
             [ h1
                 [ class "artist-card__name" ]
-                [ text artist.firstName, text " ", text artist.lastName ]
+                [ text artist.fullName ]
             , h2
                 [ class "artist-card__lyric-count" ]
                 [ showLyricCount lyricsData ]
@@ -524,13 +623,13 @@ viewArtistCardOnLyricsList rootUrl artist lyricsData =
         ]
 
 
-showImagePath : RootUrl -> Artist -> String
-showImagePath rootUrl artist =
-    if artist.imageId == 0 then
-        "/images/no-photo.jpg"
+showImagePath : RootUrl -> Bool -> Slug -> String
+showImagePath rootUrl hasImage artistSlug =
+    if hasImage then
+        rootUrl ++ "artists/" ++ artistSlug ++ "/image"
 
     else
-        rootUrl ++ "artists/" ++ artist.slug ++ "/image"
+        "/images/no-photo.jpg"
 
 
 showLyricCount : WebData (List LyricListItem) -> Html Msg
@@ -554,17 +653,34 @@ showLyricCount lyricData =
 
 
 searchArtists : String -> String -> Cmd Msg
-searchArtists apiRootUrl searchTerm =
+searchArtists apiRootUrl artistName =
     let
         endpoint =
-            searchArtistsEndpoint apiRootUrl searchTerm
+            searchArtistsEndpoint apiRootUrl artistName
     in
     request
         { method = "GET"
         , headers = []
         , url = endpoint
         , body = Http.emptyBody
-        , expect = Http.expectJson ArtistsRetrieved artistListDecoder
+        , expect = Http.expectJson RetrievedArtistSearchResults artistListDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+searchLyrics : String -> String -> Cmd Msg
+searchLyrics apiRootUrl lyricTitle =
+    let
+        endpoint =
+            searchLyricsEndpoint apiRootUrl lyricTitle
+    in
+    request
+        { method = "GET"
+        , headers = []
+        , url = endpoint
+        , body = Http.emptyBody
+        , expect = Http.expectJson RetrievedLyricSearchResults lyricSearchResultsDecoder
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -645,20 +761,6 @@ urlDecoder =
             )
 
 
-artistSlugListDecoder : Decoder Slug
-artistSlugListDecoder =
-    list artistSlugDecoder
-        |> andThen
-            (\slugs ->
-                case getPrimarySlug slugs of
-                    Nothing ->
-                        fail "no primary slug"
-
-                    Just slug ->
-                        succeed slug.name
-            )
-
-
 artistSlugDecoder : Decoder ArtistSlug
 artistSlugDecoder =
     map2 ArtistSlug
@@ -668,20 +770,18 @@ artistSlugDecoder =
 
 artistDecoder : Decoder Artist
 artistDecoder =
-    map4 Artist
-        (field "firstName" string)
-        (field "lastName" string)
-        (field "slugs" artistSlugListDecoder)
-        (field "imageId" int)
+    map3 Artist
+        (field "fullName" string)
+        (field "hasImage" bool)
+        (field "primarySlug" string)
 
 
 artistDetailsDecoder : Decoder Artist
 artistDetailsDecoder =
-    map4 Artist
-        (field "firstName" string)
-        (field "lastName" string)
-        (field "slug" string)
-        (field "imageId" int)
+    map3 Artist
+        (field "fullName" string)
+        (field "hasImage" bool)
+        (field "primarySlug" string)
 
 
 artistListDecoder : Decoder (List Artist)
@@ -699,6 +799,27 @@ lyricListItemDecoder =
     map2 LyricListItem
         (field "title" string)
         (field "slug" string)
+
+
+lyricSearchResultsDecoder : Decoder (List LyricSearchResult)
+lyricSearchResultsDecoder =
+    field "lyrics" (list lyricSearchResultDecoder)
+
+
+lyricSearchResultDecoder : Decoder LyricSearchResult
+lyricSearchResultDecoder =
+    map3 LyricSearchResult
+        (field "title" string)
+        (field "primarySlug" string)
+        (field "artist" lyricSearchArtistResultDecoder)
+
+
+lyricSearchArtistResultDecoder : Decoder LyricSearchArtistResult
+lyricSearchArtistResultDecoder =
+    map3 LyricSearchArtistResult
+        (field "fullName" string)
+        (field "primarySlug" string)
+        (field "hasImage" bool)
 
 
 lyricDecoder : Decoder Lyric
