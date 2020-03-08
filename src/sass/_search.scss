@@ -1,4 +1,141 @@
-.search {
+.app.search {
+  display: grid;
+  grid-template-rows: auto;
+  min-height: 100%;
+
+  main {
+    background-color: $light-grey;
+    padding: 1.25em;
+
+    .search__input {
+      margin: 0 0 1.5em 0;
+    }
+
+    .search__cancel-btn {
+      position: absolute;
+      right: 1em;
+      top: 25%;
+      cursor: pointer;
+      background-color: $dark-grey;
+      border: 0;
+      color: $white;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .fas {
+        font-size: 1.5rem;
+      }
+    }
+
+    .search__sub-heading {
+      font-family: $opensans;
+      @include fontSize(1);
+      color: rgba($white, 0.5);
+      margin: 0 0 1em 0;
+    }
+
+    .search__ruler {
+      border: 1px solid rgba($white, 0.3);
+      margin: 0 0 1.5em 0;
+    }
+
+    .search__artists-wrap {
+      margin: 0 0 1.5em 0;
+
+      .search__loader {
+        animation: fullView 0.5s forwards linear;
+
+        .loader__item {
+          display: flex;
+          align-items: center;
+          margin: 0 0 1em 0;
+
+          .loader__image {
+            height: 60px;
+            width: 60px;
+            background-color: $dark-grey;
+            margin: 0 1em 0 0;
+            border-radius: 50%;
+          }
+
+          .loader__artist {
+            height: 25px;
+            width: 150px;
+            background-color: $dark-grey;
+            border-radius: 2px;
+          }
+
+          .loader__lyric {
+            height: 25px;
+            width: 200px;
+            background-color: $dark-grey;
+            border-radius: 2px;
+          }
+        }
+      }
+    }
+
+    .search__lyrics-wrap {
+      .loader__item {
+        display: flex;
+        align-items: center;
+        margin: 0 0 1em 0;
+
+        .loader__image {
+          height: 60px;
+          width: 60px;
+          background-color: $dark-grey;
+          margin: 0 1em 0 0;
+          border-radius: 50%;
+        }
+
+        .loader__lyric {
+          height: 25px;
+          width: 200px;
+          background-color: $dark-grey;
+          border-radius: 2px;
+          margin: 0 0 0.5em 0;
+        }
+
+        .loader__artist {
+          height: 15px;
+          width: 150px;
+          background-color: $dark-grey;
+          border-radius: 2px;
+        }
+      }
+
+      .lyric__search-result {
+        display: flex;
+        align-items: center;
+        margin: 0 0 1em 0;
+
+        .search__lyric-title {
+          @include fontSize(1);
+          font-family: $lora;
+          color: rgba($white, 0.85);
+          font-weight: 700;
+        }
+
+        .search__lyric-artist-name {
+          @include fontSize(1);
+          font-family: $opensans;
+          color: rgba($white, 0.85);
+        }
+
+        &:visited {
+          color: rgba($white, 0.85);
+        }
+      }
+    }
+  }
+}
+
+.search__wrap {
   position: fixed;
   left: 1.25em;
   right: 1.25em;
@@ -8,51 +145,8 @@
   border-radius: 2px;
   transition: all linear 0.2s;
 
-  &:focus-within {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 100%;
-  }
-
   .search__artists-wrap {
     margin: 0;
-  }
-
-  .search__sub-heading {
-    font-family: $opensans;
-    @include fontSize(1);
-    color: rgba($white, 0.5);
-    margin: 0 0 1em 0;
-  }
-
-  .search__ruler {
-    border: 1px solid rgba($white, 0.3);
-    margin: 0 0 1.5em 0;
-  }
-
-  .lyric__search-result {
-    display: flex;
-    align-items: center;
-    margin: 0 0 1em 0;
-
-    .search__lyric-title {
-      @include fontSize(1);
-      font-family: $lora;
-      color: rgba($white, 0.85);
-      font-weight: 700;
-    }
-
-    .search__lyric-artist-name {
-      @include fontSize(1);
-      font-family: $opensans;
-      color: rgba($white, 0.85);
-    }
-
-    &:visited {
-      color: rgba($white, 0.85);
-    }
   }
 }
 
@@ -103,26 +197,28 @@
   cursor: pointer;
 }
 
-body:focus-within {
-  body {
-    position: fixed;
-    overscroll-behavior: contain;
+@keyframes fullView {
+  100% {
+    width: 100%;
   }
+}
 
-  .search__icon {
-    position: static;
-    opacity: 1;
-    width: auto;
-    height: auto;
-    z-index: inherit;
-    margin: 0 0 0.5em 0;
+.animate {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    to right,
+    $dark-grey 4%,
+    #313542 25%,
+    $dark-grey 36%
+  );
+  background-size: 1000px 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
   }
-
-  .search__input {
-    margin: 0 0 1.25em 0;
-  }
-
-  .search__artists-wrap {
-    margin: 0 0 2em 0;
+  100% {
+    background-position: 1000px 0;
   }
 }
