@@ -527,7 +527,7 @@ viewLyricSearchResult rootUrl lyricSearchResult =
         ]
         [ img
             [ class "search__artist-image"
-            , src (getImagePath rootUrl True lyricSearchResult.artist.primarySlug)
+            , src (getImagePath rootUrl lyricSearchResult.artist.hasImage lyricSearchResult.artist.primarySlug)
             , alt lyricSearchResult.artist.fullName
             ]
             []
@@ -546,7 +546,7 @@ viewArtist : RootUrl -> Artist -> Html Msg
 viewArtist rootUrl artist =
     a
         [ class "artist__result", href ("/artists/" ++ artist.primarySlug ++ "/lyrics"), onClick (ArtistClicked artist) ]
-        [ img [ class "search__artist-image", src (getImagePath rootUrl True artist.primarySlug), alt artist.fullName ] []
+        [ img [ class "search__artist-image", src (getImagePath rootUrl artist.hasImage artist.primarySlug), alt artist.fullName ] []
         , p
             [ class "artist__name" ]
             [ text artist.fullName ]
@@ -622,7 +622,7 @@ viewArtistCardOnLyricsList rootUrl artist lyricsData =
     div
         [ class "card artist-card" ]
         [ img
-            [ class "artist-card__image", src (getImagePath rootUrl True artist.primarySlug), alt artist.fullName ]
+            [ class "artist-card__image", src (getImagePath rootUrl artist.hasImage artist.primarySlug), alt artist.fullName ]
             []
         , div [ class "artist-card__meta" ]
             [ h1
