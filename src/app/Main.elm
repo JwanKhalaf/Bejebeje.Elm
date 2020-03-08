@@ -1,14 +1,16 @@
 module Main exposing (..)
 
 import Browser exposing (application)
+import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, searchLyricsEndpoint)
-import Html exposing (Html, a, div, h1, h2, header, hr, i, img, input, main_, p, text)
+import Html exposing (Html, a, button, div, h1, h2, header, hr, i, img, input, main_, p, span, text)
 import Html.Attributes as Attr
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick, onFocus, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
 import Route exposing (Route)
+import Task
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
 
@@ -175,6 +177,7 @@ init flags url key =
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
+    | WantToSearch
     | SearchQueryChanged String
     | RetrievedArtistSearchResults (Result Http.Error (List Artist))
     | RetrievedLyricSearchResults (Result Http.Error (List LyricSearchResult))
@@ -184,6 +187,7 @@ type Msg
     | LyricClicked Slug String
     | LyricRetrieved (Result Http.Error Lyric)
     | WantToGoHome
+    | NoOp
 
 
 topUpdate : (Msg -> AppModel -> ( AppModel, Cmd Msg )) -> Msg -> Model -> ( Model, Cmd Msg )
@@ -221,6 +225,9 @@ update msg model =
 
                 _ ->
                     ( { model | url = url }, Cmd.none )
+
+        WantToSearch ->
+            ( { model | state = Searching { artists = NotAsked, lyrics = NotAsked } }, focusSearchInput )
 
         SearchQueryChanged searchTerm ->
             if String.isEmpty searchTerm then
@@ -314,6 +321,9 @@ update msg model =
         WantToGoHome ->
             ( { model | state = Home, searchTerm = "" }, Cmd.none )
 
+        NoOp ->
+            ( model, Cmd.none )
+
 
 
 -- subscriptions
@@ -345,57 +355,91 @@ view model =
     { title = "Bêjebêje"
     , body =
         [ div
-            [ Attr.class "app" ]
-            [ header [] <| showHeader model.state model.activeArtistSlug
-            , main_ [ Attr.class (getClass model.state) ] <| showState model.apiRootUrl model.state model.activeArtistSlug
-            , showSearch model.apiRootUrl model.searchTerm model.state
+            [ Attr.class (getClass model.state) ]
+            [ showHeader model.state model.activeArtistSlug
+            , main_ [] <| showState model
             ]
         ]
     }
 
 
-showHeader : AppState -> Maybe Slug -> List (Html Msg)
+showHeader : AppState -> Maybe Slug -> Html Msg
 showHeader state artistSlug =
     case state of
         ShowingArtistLyrics _ ->
-            [ a [ Attr.href "/", Attr.attribute "role" "button", Attr.attribute "aria-label" "Back" ] [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+            header []
+                [ a
+                    [ Attr.href "/", Attr.attribute "role" "button", Attr.attribute "aria-label" "Back" ]
+                    [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ]
+                ]
 
         ShowingLyric _ ->
             case artistSlug of
                 Just slug ->
-                    [ a [ Attr.href ("/artists/" ++ slug ++ "/lyrics") ] [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+                    header
+                        []
+                        [ a [ Attr.href ("/artists/" ++ slug ++ "/lyrics") ] [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
 
                 Nothing ->
-                    [ text "" ]
+                    text ""
+
+        Searching _ ->
+            text ""
 
         _ ->
-            [ showLogo ]
+            header
+                []
+                [ showLogo
+                ]
 
 
 getClass : AppState -> String
 getClass state =
     case state of
+        Home ->
+            "app home"
+
         Searching _ ->
-            "search-results"
+            "app search"
 
         ShowingArtistLyrics _ ->
-            "artist"
+            "app artist"
 
         ShowingLyric _ ->
-            "lyric"
-
-        _ ->
-            ""
+            "app lyric"
 
 
-showState : Url -> AppState -> Maybe Slug -> List (Html Msg)
-showState rootUrl state activeArtistSlug =
-    case state of
+showState : AppModel -> List (Html Msg)
+showState model =
+    case model.state of
         Home ->
-            [ showQuote ]
+            [ showQuote, showSearch model.apiRootUrl model.searchTerm model.state ]
+
+        Searching result ->
+            [ showMainSearch model.searchTerm
+            , case ( result.artists, result.lyrics ) of
+                ( Success _, Success _ ) ->
+                    div [ Attr.class "search__results" ]
+                        [ showArtists (toString model.apiRootUrl) result.artists
+                        , showLyricSearchResults (toString model.apiRootUrl) result.lyrics
+                        ]
+
+                ( Loading, Loading ) ->
+                    div [] [ showSearchArtistResultsLoader, showSearchLyricResultsLoader ]
+
+                ( _, Loading ) ->
+                    showSearchLyricResultsLoader
+
+                ( Loading, _ ) ->
+                    showSearchArtistResultsLoader
+
+                _ ->
+                    text ""
+            , button [ Attr.class "search__cancel-btn", onClick WantToGoHome ] [ i [ Attr.class "fas fa-times" ] [] ]
+            ]
 
         ShowingArtistLyrics artistResult ->
-            case ( rootUrl, activeArtistSlug ) of
+            case ( model.apiRootUrl, model.activeArtistSlug ) of
                 ( a, Just artist ) ->
                     [ showArtistDetails (toString a)
                         artistResult.artist
@@ -412,8 +456,54 @@ showState rootUrl state activeArtistSlug =
         ShowingLyric lyric ->
             [ viewLyric lyric ]
 
-        _ ->
-            [ text "" ]
+
+showSearchArtistResultsLoader : Html Msg
+showSearchArtistResultsLoader =
+    div
+        [ Attr.class "search__artists-wrap" ]
+        [ h2 [ Attr.class "search__sub-heading" ] [ text "Hunermend" ]
+        , hr [ Attr.class "search__ruler" ] []
+        , div [ Attr.class "search__loader" ]
+            [ div [ Attr.class "loader__item" ]
+                [ div [ Attr.class "loader__image animate" ] []
+                , div [ Attr.class "loader__artist animate" ] []
+                ]
+            , div [ Attr.class "loader__item" ]
+                [ div [ Attr.class "loader__image animate" ] []
+                , div [ Attr.class "loader__artist animate" ] []
+                ]
+            ]
+        ]
+
+
+showSearchLyricResultsLoader : Html Msg
+showSearchLyricResultsLoader =
+    div
+        [ Attr.class "search__lyrics-wrap" ]
+        [ h2 [ Attr.class "search__sub-heading" ] [ text "Stran" ]
+        , hr [ Attr.class "search__ruler" ] []
+        , div [ Attr.class "search__loader" ]
+            [ div [ Attr.class "loader__item" ]
+                [ div [ Attr.class "loader__image animate" ] []
+                , div [ Attr.class "loader__info" ]
+                    [ div [ Attr.class "loader__lyric animate" ] []
+                    , div [ Attr.class "loader__artist animate" ] []
+                    ]
+                ]
+            , div [ Attr.class "loader__item" ]
+                [ div [ Attr.class "loader__image animate" ] []
+                , div [ Attr.class "loader__info" ]
+                    [ div [ Attr.class "loader__lyric animate" ] []
+                    , div [ Attr.class "loader__artist animate" ] []
+                    ]
+                ]
+            ]
+        ]
+
+
+focusSearchInput : Cmd Msg
+focusSearchInput =
+    Task.attempt (\_ -> NoOp) (Dom.focus "search__input-main")
 
 
 showLogo : Html Msg
@@ -426,12 +516,32 @@ showLogo =
         ]
 
 
+showMainSearch : String -> Html Msg
+showMainSearch searchTerm =
+    input
+        [ Attr.id "search__input-main"
+        , Attr.class "search__input"
+        , Attr.placeholder "Li stranê yan jî hunermend bigere"
+        , Attr.value searchTerm
+        , onInput SearchQueryChanged
+        , Attr.attribute "aria-label" "search"
+        ]
+        []
+
+
 showSearch : Url -> String -> AppState -> Html Msg
 showSearch rootUrl searchTerm state =
-    div [ Attr.class "search", Attr.attribute "role" "search" ]
+    div [ Attr.class "search__wrap", Attr.attribute "role" "search" ]
         [ i [ Attr.class "far fa-long-arrow-left search__icon" ] []
         , input
-            [ Attr.class "search__input", Attr.placeholder "Li hunermend bigere", Attr.value searchTerm, onInput SearchQueryChanged, Attr.attribute "aria-label" "search" ]
+            [ Attr.id "search__input"
+            , Attr.class "search__input"
+            , Attr.placeholder "Li stranê yan jî hunermend bigere"
+            , Attr.value searchTerm
+            , onInput SearchQueryChanged
+            , onFocus WantToSearch
+            , Attr.attribute "aria-label" "search"
+            ]
             []
         , case state of
             Searching result ->
@@ -472,7 +582,7 @@ showArtists : RootUrl -> WebData (List Artist) -> Html Msg
 showArtists rootUrl artistData =
     case artistData of
         NotAsked ->
-            showQuote
+            text ""
 
         Loading ->
             showLoader
@@ -497,7 +607,7 @@ showLyricSearchResults : RootUrl -> WebData (List LyricSearchResult) -> Html Msg
 showLyricSearchResults rootUrl lyricSearchResults =
     case lyricSearchResults of
         NotAsked ->
-            showQuote
+            text ""
 
         Loading ->
             showLoader
