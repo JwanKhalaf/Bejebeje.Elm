@@ -12,9 +12,9 @@
     }
 
     .search__cancel-btn {
-      position: absolute;
+      position: fixed;
       right: 1em;
-      top: 25%;
+      top: 35%;
       cursor: pointer;
       background-color: $dark-grey;
       border: 0;
