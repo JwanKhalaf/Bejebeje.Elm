@@ -4,7 +4,6 @@ node_js:
 branches:
   only:
     - master
-    - feature/search-state
 before_script:
   - chmod -R a+x scripts
 script:

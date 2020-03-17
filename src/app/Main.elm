@@ -8,7 +8,7 @@ import Html exposing (Html, a, button, div, h1, h2, header, hr, i, img, input, m
 import Html.Attributes exposing (alt, attribute, class, href, id, placeholder, src, value)
 import Html.Events exposing (onClick, onFocus, onInput)
 import Http exposing (expectJson)
-import Json.Decode exposing (Decoder, andThen, bool, fail, field, int, list, map, map2, map3, map4, string, succeed)
+import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
 import Route exposing (Route)
 import Task
 import Url exposing (Url, fromString, toString)
@@ -123,6 +123,7 @@ type alias AppModel =
     , apiRootUrl : Url
     , searchTerm : String
     , state : AppState
+    , previousState : Maybe AppState
     , activeArtistSlug : Maybe Slug
     }
 
@@ -167,7 +168,7 @@ init flags url key =
                         Route.NotFoundRoute ->
                             { commands = Cmd.none, state = Home, artistSlug = Nothing }
             in
-            ( AllOk (AppModel key url f.apiRootUrl "" temp.state temp.artistSlug), temp.commands )
+            ( AllOk (AppModel key url f.apiRootUrl "" temp.state Nothing temp.artistSlug), temp.commands )
 
 
 
@@ -218,23 +219,23 @@ update msg model =
             in
             case parsedUrl of
                 Route.HomeRoute ->
-                    ( { model | url = url, state = Home }, Cmd.none )
+                    ( { model | url = url, previousState = Just model.state, state = Home }, Cmd.none )
 
                 Route.ArtistRoute slug ->
-                    ( { model | url = url, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
+                    ( { model | url = url, previousState = Just model.state, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
 
                 _ ->
                     ( { model | url = url }, Cmd.none )
 
         WantToSearch ->
-            ( { model | state = Searching { artists = NotAsked, lyrics = NotAsked } }, focusSearchInput )
+            ( { model | previousState = getPreviousStateValue model.previousState model.state, state = Searching { artists = NotAsked, lyrics = NotAsked } }, focusSearchInput )
 
         SearchQueryChanged searchTerm ->
             if String.isEmpty searchTerm then
-                ( { model | searchTerm = searchTerm, state = Home }, Cmd.none )
+                ( { model | searchTerm = searchTerm, previousState = getPreviousStateValue model.previousState model.state, state = Home }, Cmd.none )
 
             else
-                ( { model | searchTerm = searchTerm, state = Searching { artists = Loading, lyrics = Loading } }, Cmd.batch [ searchArtists (toString model.apiRootUrl) searchTerm, searchLyrics (toString model.apiRootUrl) searchTerm ] )
+                ( { model | searchTerm = searchTerm, previousState = getPreviousStateValue model.previousState model.state, state = Searching { artists = Loading, lyrics = Loading } }, Cmd.batch [ searchArtists (toString model.apiRootUrl) searchTerm, searchLyrics (toString model.apiRootUrl) searchTerm ] )
 
         RetrievedArtistSearchResults result ->
             let
@@ -251,7 +252,7 @@ update msg model =
                         _ ->
                             model.state
             in
-            ( { model | state = temp }, Cmd.none )
+            ( { model | previousState = getPreviousStateValue model.previousState model.state, state = temp }, Cmd.none )
 
         RetrievedLyricSearchResults result ->
             let
@@ -268,10 +269,10 @@ update msg model =
                         _ ->
                             model.state
             in
-            ( { model | state = temp }, Cmd.none )
+            ( { model | previousState = getPreviousStateValue model.previousState model.state, state = temp }, Cmd.none )
 
         ArtistClicked artist ->
-            ( { model | searchTerm = "", activeArtistSlug = Just artist.primarySlug, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) artist.primarySlug, getArtist (toString model.apiRootUrl) artist.primarySlug ] )
+            ( { model | searchTerm = "", activeArtistSlug = Just artist.primarySlug, previousState = getPreviousStateValue model.previousState model.state, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) artist.primarySlug, getArtist (toString model.apiRootUrl) artist.primarySlug ] )
 
         LyricsRetrieved result ->
             let
@@ -308,7 +309,7 @@ update msg model =
             ( { model | state = temp }, Cmd.none )
 
         LyricClicked artistSlug lyricSlug ->
-            ( { model | state = ShowingLyric Loading, activeArtistSlug = Just artistSlug }, getLyric (toString model.apiRootUrl) artistSlug lyricSlug )
+            ( { model | previousState = Just model.state, state = ShowingLyric Loading, activeArtistSlug = Just artistSlug }, getLyric (toString model.apiRootUrl) artistSlug lyricSlug )
 
         LyricRetrieved result ->
             case result of
@@ -356,20 +357,20 @@ view model =
     , body =
         [ div
             [ class (getClass model.state) ]
-            [ showHeader model.state model.activeArtistSlug
+            [ showHeader model.previousState model.state model.activeArtistSlug
             , main_ [] <| showState model
             ]
         ]
     }
 
 
-showHeader : AppState -> Maybe Slug -> Html Msg
-showHeader state artistSlug =
+showHeader : Maybe AppState -> AppState -> Maybe Slug -> Html Msg
+showHeader previousState state artistSlug =
     case state of
         ShowingArtistLyrics _ ->
             header []
                 [ a
-                    [ href "/", attribute "role" "button", attribute "aria-label" "Back" ]
+                    [ href (getBackLink previousState), attribute "role" "button", attribute "aria-label" "Back" ]
                     [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ]
                 ]
 
@@ -391,6 +392,32 @@ showHeader state artistSlug =
                 []
                 [ showLogo
                 ]
+
+
+getBackLink : Maybe AppState -> String
+getBackLink previousState =
+    case previousState of
+        Just state ->
+            case state of
+                ShowingArtistLyrics result ->
+                    case result.artist of
+                        Success a ->
+                            "/artists/" ++ a.primarySlug ++ "/lyrics"
+
+                        _ ->
+                            ""
+
+                Searching _ ->
+                    "/searching"
+
+                Home ->
+                    "/"
+
+                _ ->
+                    ""
+
+        Nothing ->
+            ""
 
 
 getClass : AppState -> String
@@ -978,3 +1005,40 @@ handleJsonResponse decoder response =
 getPrimarySlug : List ArtistSlug -> Maybe ArtistSlug
 getPrimarySlug artistSlugs =
     List.head (List.filter .isPrimary artistSlugs)
+
+
+getPreviousStateValue : Maybe AppState -> AppState -> Maybe AppState
+getPreviousStateValue previousState state =
+    case previousState of
+        Just prevState ->
+            let
+                temp =
+                    Debug.log "prevState" prevState
+
+                tempTwo =
+                    Debug.log "state" state
+            in
+            if isDifferentFromPreviousState prevState state then
+                Just state
+
+            else
+                Just prevState
+
+        Nothing ->
+            Just state
+
+
+isDifferentFromPreviousState : AppState -> AppState -> Bool
+isDifferentFromPreviousState previousState state =
+    case ( previousState, state ) of
+        ( ShowingLyric _, ShowingLyric _ ) ->
+            False
+
+        ( ShowingArtistLyrics _, ShowingArtistLyrics _ ) ->
+            False
+
+        ( Searching _, Searching _ ) ->
+            False
+
+        _ ->
+            True
