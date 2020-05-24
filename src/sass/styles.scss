@@ -32,25 +32,6 @@ header {
   padding: 1.25em 1.25em 0 1.25em;
 }
 
-.logo__text {
-  display: inline;
-  @include fontSize(2.5);
-  font-family: $satisfy;
-  color: $white;
-  font-weight: 100;
-
-  &:focus {
-    outline: none;
-  }
-}
-
-.logo__letter {
-  @include fontSize(2.5);
-  font-family: $satisfy;
-  color: $red;
-  font-weight: 100;
-}
-
 .bb-p {
   color: $white;
 }
