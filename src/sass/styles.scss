@@ -32,6 +32,10 @@ header {
   padding: 1.25em 1.25em 0 1.25em;
 }
 
+.logo {
+  padding: 1.25em;
+}
+
 .bb-p {
   color: $white;
 }
@@ -55,11 +59,12 @@ main.lyric {
 .quote {
   margin: 0 0 1em 0;
   position: relative;
+  padding: 0 1.25em;
 
   &::before {
     content: "“";
     position: absolute;
-    left: -0.05em;
+    left: -0.01em;
     top: 0.25em;
     color: rgba(#414658, 0.6);
     font-size: 20rem;
