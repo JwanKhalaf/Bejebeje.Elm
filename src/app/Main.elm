@@ -4,7 +4,7 @@ import Browser exposing (application)
 import Browser.Navigation as Nav
 import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, searchLyricsEndpoint)
 import Html exposing (Html, a, div, h1, h2, header, hr, i, img, input, main_, p, text)
-import Html.Attributes exposing (alt, attribute, class, href, placeholder, src, value, width)
+import Html.Attributes as Attr
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
 import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
@@ -345,9 +345,9 @@ view model =
     { title = "Bêjebêje"
     , body =
         [ div
-            [ class "app" ]
+            [ Attr.class "app" ]
             [ header [] <| showHeader model.state model.activeArtistSlug
-            , main_ [ class (getClass model.state) ] <| showState model.apiRootUrl model.state model.activeArtistSlug
+            , main_ [ Attr.class (getClass model.state) ] <| showState model.apiRootUrl model.state model.activeArtistSlug
             , showSearch model.apiRootUrl model.searchTerm model.state
             ]
         ]
@@ -358,12 +358,12 @@ showHeader : AppState -> Maybe Slug -> List (Html Msg)
 showHeader state artistSlug =
     case state of
         ShowingArtistLyrics _ ->
-            [ a [ href "/", attribute "role" "button", attribute "aria-label" "Back" ] [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+            [ a [ Attr.href "/", Attr.attribute "role" "button", Attr.attribute "aria-label" "Back" ] [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
 
         ShowingLyric _ ->
             case artistSlug of
                 Just slug ->
-                    [ a [ href ("/artists/" ++ slug ++ "/lyrics") ] [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+                    [ a [ Attr.href ("/artists/" ++ slug ++ "/lyrics") ] [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
 
                 Nothing ->
                     [ text "" ]
@@ -419,19 +419,19 @@ showState rootUrl state activeArtistSlug =
 showLogo : Html Msg
 showLogo =
     div
-        [ class "logo" ]
+        [ Attr.class "logo" ]
         [ a
-            [ href "/", onClick WantToGoHome ]
-            [ img [ src "images/bejebeje-logo.svg", alt "Bêjebêje's logo", class "logo__svg", width 30 ] [] ]
+            [ Attr.href "/", onClick WantToGoHome ]
+            [ img [ Attr.src "images/bejebeje-logo.svg", Attr.alt "Bêjebêje's logo", Attr.class "logo__svg", Attr.width 30 ] [] ]
         ]
 
 
 showSearch : Url -> String -> AppState -> Html Msg
 showSearch rootUrl searchTerm state =
-    div [ class "search", attribute "role" "search" ]
-        [ i [ class "far fa-long-arrow-left search__icon" ] []
+    div [ Attr.class "search", Attr.attribute "role" "search" ]
+        [ i [ Attr.class "far fa-long-arrow-left search__icon" ] []
         , input
-            [ class "search__input", placeholder "Li hunermend bigere", value searchTerm, onInput SearchQueryChanged, attribute "aria-label" "search" ]
+            [ Attr.class "search__input", Attr.placeholder "Li hunermend bigere", Attr.value searchTerm, onInput SearchQueryChanged, Attr.attribute "aria-label" "search" ]
             []
         , case state of
             Searching result ->
@@ -450,17 +450,17 @@ showSearch rootUrl searchTerm state =
 
 showQuote : Html Msg
 showQuote =
-    div [ class "quote" ]
-        [ p [ class "quote__text" ]
+    div [ Attr.class "quote" ]
+        [ p [ Attr.class "quote__text" ]
             [ text "Kurd ji hev cuda dilopên baranê ne, cihê cihê têne daqurtandin. Ko gihane hev debin lehî, lehîke boş. Tu kes, tu tişt li ber wan nikare bisekine. Felata welatê me di rabûna vê lehiyê de ye." ]
-        , p [ class "quote__author" ]
+        , p [ Attr.class "quote__author" ]
             [ text "Celadet Alî Bedirxan" ]
         ]
 
 
 showLoader : Html Msg
 showLoader =
-    img [ src "loader.svg", alt "an animated loader graphic" ] []
+    img [ Attr.src "loader.svg", Attr.alt "an animated loader graphic" ] []
 
 
 showError : Html Msg
@@ -483,10 +483,10 @@ showArtists rootUrl artistData =
         Success artists ->
             if List.length artists > 0 then
                 div
-                    [ class "search__artists-wrap" ]
-                    [ h2 [ class "search__sub-heading" ] [ text "Hunermend" ]
-                    , hr [ class "search__ruler" ] []
-                    , div [ class "search__artists-results" ] (List.map (viewArtist rootUrl) artists)
+                    [ Attr.class "search__artists-wrap" ]
+                    [ h2 [ Attr.class "search__sub-heading" ] [ text "Hunermend" ]
+                    , hr [ Attr.class "search__ruler" ] []
+                    , div [ Attr.class "search__artists-results" ] (List.map (viewArtist rootUrl) artists)
                     ]
 
             else
@@ -508,10 +508,10 @@ showLyricSearchResults rootUrl lyricSearchResults =
         Success lyrics ->
             if List.length lyrics > 0 then
                 div
-                    [ class "search__lyrics-wrap" ]
-                    [ h2 [ class "search__sub-heading" ] [ text "Stran" ]
-                    , hr [ class "search__ruler" ] []
-                    , div [ class "search__lyrics-results" ] (List.map (viewLyricSearchResult rootUrl) lyrics)
+                    [ Attr.class "search__lyrics-wrap" ]
+                    [ h2 [ Attr.class "search__sub-heading" ] [ text "Stran" ]
+                    , hr [ Attr.class "search__ruler" ] []
+                    , div [ Attr.class "search__lyrics-results" ] (List.map (viewLyricSearchResult rootUrl) lyrics)
                     ]
 
             else
@@ -521,22 +521,22 @@ showLyricSearchResults rootUrl lyricSearchResults =
 viewLyricSearchResult : RootUrl -> LyricSearchResult -> Html Msg
 viewLyricSearchResult rootUrl lyricSearchResult =
     a
-        [ class "lyric__search-result"
-        , href ("/artists/" ++ lyricSearchResult.artist.primarySlug ++ "/lyrics/" ++ lyricSearchResult.primarySlug)
+        [ Attr.class "lyric__search-result"
+        , Attr.href ("/artists/" ++ lyricSearchResult.artist.primarySlug ++ "/lyrics/" ++ lyricSearchResult.primarySlug)
         , onClick (LyricClicked lyricSearchResult.artist.primarySlug lyricSearchResult.primarySlug)
         ]
         [ img
-            [ class "search__artist-image"
-            , src (getImagePath rootUrl lyricSearchResult.artist.hasImage lyricSearchResult.artist.primarySlug)
-            , alt lyricSearchResult.artist.fullName
+            [ Attr.class "search__artist-image"
+            , Attr.src (getImagePath rootUrl lyricSearchResult.artist.hasImage lyricSearchResult.artist.primarySlug)
+            , Attr.alt lyricSearchResult.artist.fullName
             ]
             []
         , div
-            [ class "search__lyric-info" ]
+            [ Attr.class "search__lyric-info" ]
             [ p
-                [ class "search__lyric-title" ]
+                [ Attr.class "search__lyric-title" ]
                 [ text lyricSearchResult.title ]
-            , p [ class "search__lyric-artist-name" ]
+            , p [ Attr.class "search__lyric-artist-name" ]
                 [ text lyricSearchResult.artist.fullName ]
             ]
         ]
@@ -545,10 +545,10 @@ viewLyricSearchResult rootUrl lyricSearchResult =
 viewArtist : RootUrl -> Artist -> Html Msg
 viewArtist rootUrl artist =
     a
-        [ class "artist__result", href ("/artists/" ++ artist.primarySlug ++ "/lyrics"), onClick (ArtistClicked artist) ]
-        [ img [ class "search__artist-image", src (getImagePath rootUrl artist.hasImage artist.primarySlug), alt artist.fullName ] []
+        [ Attr.class "artist__result", Attr.href ("/artists/" ++ artist.primarySlug ++ "/lyrics"), onClick (ArtistClicked artist) ]
+        [ img [ Attr.class "search__artist-image", Attr.src (getImagePath rootUrl artist.hasImage artist.primarySlug), Attr.alt artist.fullName ] []
         , p
-            [ class "artist__name" ]
+            [ Attr.class "artist__name" ]
             [ text artist.fullName ]
         ]
 
@@ -584,19 +584,19 @@ showArtistLyricsList rootUrl artistSlug artistLyrics =
         Success lyrics ->
             if List.length lyrics > 0 then
                 div
-                    [ class "lyric__list" ]
+                    [ Attr.class "lyric__list" ]
                     (List.map (viewLyricListItem artistSlug) lyrics)
 
             else
-                div [ class "lyric__empty-list" ] [ i [ class "fad fa-pennant lyric__empty-icon" ] [], p [ class "lyric__empty-text" ] [ text "Bibure, vê demê stran tune ne!" ] ]
+                div [ Attr.class "lyric__empty-list" ] [ i [ Attr.class "fad fa-pennant lyric__empty-icon" ] [], p [ Attr.class "lyric__empty-text" ] [ text "Bibure, vê demê stran tune ne!" ] ]
 
 
 viewLyricListItem : Slug -> LyricListItem -> Html Msg
 viewLyricListItem artistSlug lyricListItem =
     a
-        [ class "lyric-item", href ("/artists/" ++ artistSlug ++ "/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked artistSlug lyricListItem.slug) ]
+        [ Attr.class "lyric-item", Attr.href ("/artists/" ++ artistSlug ++ "/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked artistSlug lyricListItem.slug) ]
         [ p
-            [ class "lyric-item__title" ]
+            [ Attr.class "lyric-item__title" ]
             [ text lyricListItem.title ]
         ]
 
@@ -614,22 +614,22 @@ viewLyric lyric =
             showError
 
         Success lyricData ->
-            p [ class "lyric__body" ] [ text lyricData.body ]
+            p [ Attr.class "lyric__body" ] [ text lyricData.body ]
 
 
 viewArtistCardOnLyricsList : RootUrl -> Artist -> WebData (List LyricListItem) -> Html Msg
 viewArtistCardOnLyricsList rootUrl artist lyricsData =
     div
-        [ class "card artist-card" ]
+        [ Attr.class "card artist-card" ]
         [ img
-            [ class "artist-card__image", src (getImagePath rootUrl artist.hasImage artist.primarySlug), alt artist.fullName ]
+            [ Attr.class "artist-card__image", Attr.src (getImagePath rootUrl artist.hasImage artist.primarySlug), Attr.alt artist.fullName ]
             []
-        , div [ class "artist-card__meta" ]
+        , div [ Attr.class "artist-card__meta" ]
             [ h1
-                [ class "artist-card__name" ]
+                [ Attr.class "artist-card__name" ]
                 [ text artist.fullName ]
             , h2
-                [ class "artist-card__lyric-count" ]
+                [ Attr.class "artist-card__lyric-count" ]
                 [ showLyricCount lyricsData ]
             ]
         ]
