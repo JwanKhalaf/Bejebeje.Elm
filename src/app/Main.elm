@@ -3,11 +3,11 @@ module Main exposing (..)
 import Browser exposing (application)
 import Browser.Navigation as Nav
 import Endpoint exposing (artistDetailsEndpoint, artistLyricsEndpoint, lyricEndpoint, request, searchArtistsEndpoint, searchLyricsEndpoint)
-import Html exposing (Html, a, div, h1, h2, header, hr, i, img, input, main_, p, span, text)
-import Html.Attributes exposing (alt, attribute, class, href, placeholder, src, value)
+import Html exposing (Html, a, div, h1, h2, header, hr, i, img, input, main_, p, text)
+import Html.Attributes exposing (alt, attribute, class, href, placeholder, src, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (expectJson)
-import Json.Decode exposing (Decoder, andThen, bool, fail, field, int, list, map, map2, map3, map4, string, succeed)
+import Json.Decode exposing (Decoder, andThen, bool, fail, field, list, map, map2, map3, string, succeed)
 import Route exposing (Route)
 import Url exposing (Url, fromString, toString)
 import Url.Parser as Parser exposing ((</>), Parser)
@@ -422,7 +422,7 @@ showLogo =
         [ class "logo" ]
         [ a
             [ href "/", onClick WantToGoHome ]
-            [ h1 [ class "logo__text" ] [ span [ class "logo__letter" ] [ text "B" ], text "êjebêje" ] ]
+            [ img [ src "images/bejebeje-logo.svg", alt "Bêjebêje's logo", class "logo__svg", width 30 ] [] ]
         ]
 
 
