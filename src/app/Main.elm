@@ -222,7 +222,7 @@ update msg model =
                     ( { model | url = url, previousState = Just model.state, state = Home }, Cmd.none )
 
                 Route.ArtistRoute slug ->
-                    ( { model | url = url, previousState = Just model.state, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
+                    ( { model | activeArtistSlug = Just slug, url = url, previousState = Just model.state, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
 
                 _ ->
                     ( { model | url = url }, Cmd.none )
@@ -408,7 +408,7 @@ getBackLink previousState =
                             ""
 
                 Searching _ ->
-                    "/searching"
+                    "/search"
 
                 Home ->
                     "/"
@@ -538,7 +538,7 @@ showLogo =
     div
         [ Attr.class "logo" ]
         [ a
-            [ Attr.href "/", onClick WantToGoHome ]
+            [ Attr.href "/" ]
             [ img [ Attr.src "images/bejebeje-logo.svg", Attr.alt "Bêjebêje's logo", Attr.class "logo__svg", Attr.width 30 ] [] ]
         ]
 
@@ -682,7 +682,7 @@ viewLyricSearchResult rootUrl lyricSearchResult =
 viewArtist : RootUrl -> Artist -> Html Msg
 viewArtist rootUrl artist =
     a
-        [ Attr.class "artist__result", Attr.href ("/artists/" ++ artist.primarySlug ++ "/lyrics"), onClick (ArtistClicked artist) ]
+        [ Attr.class "artist__result", Attr.href ("/artists/" ++ artist.primarySlug ++ "/lyrics") ]
         [ img [ Attr.class "search__artist-image", Attr.src (getImagePath rootUrl artist.hasImage artist.primarySlug), Attr.alt artist.fullName ] []
         , p
             [ Attr.class "artist__name" ]
@@ -731,7 +731,7 @@ showArtistLyricsList rootUrl artistSlug artistLyrics =
 viewLyricListItem : Slug -> LyricListItem -> Html Msg
 viewLyricListItem artistSlug lyricListItem =
     a
-        [ Attr.class "lyric-item", Attr.href ("/artists/" ++ artistSlug ++ "/lyrics/" ++ lyricListItem.slug), onClick (LyricClicked artistSlug lyricListItem.slug) ]
+        [ Attr.class "lyric-item", Attr.href ("/artists/" ++ artistSlug ++ "/lyrics/" ++ lyricListItem.slug) ]
         [ p
             [ Attr.class "lyric-item__title" ]
             [ text lyricListItem.title ]
