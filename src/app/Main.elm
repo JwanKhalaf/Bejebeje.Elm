@@ -149,6 +149,9 @@ init flags url key =
                         Route.HomeRoute ->
                             { commands = Cmd.none, state = Home, artistSlug = Nothing }
 
+                        Route.SearchRoute ->
+                            { commands = focusSearchInput, state = Searching { artists = NotAsked, lyrics = NotAsked }, artistSlug = Nothing }
+
                         Route.ArtistRoute artist ->
                             { commands =
                                 Cmd.batch
@@ -228,7 +231,7 @@ update msg model =
                     ( { model | url = url }, Cmd.none )
 
         WantToSearch ->
-            ( { model | previousState = getPreviousStateValue model.previousState model.state, state = Searching { artists = NotAsked, lyrics = NotAsked } }, focusSearchInput )
+            ( { model | previousState = getPreviousStateValue model.previousState model.state, state = Searching { artists = NotAsked, lyrics = NotAsked } }, Nav.pushUrl model.key "/search" )
 
         SearchQueryChanged searchTerm ->
             if String.isEmpty searchTerm then
