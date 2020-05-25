@@ -356,13 +356,8 @@ view model =
     { title = "Bêjebêje"
     , body =
         [ div
-<<<<<<< HEAD
             [ Attr.class (getClass model.state) ]
-            [ showHeader model.state model.activeArtistSlug
-=======
-            [ class (getClass model.state) ]
             [ showHeader model.previousState model.state model.activeArtistSlug
->>>>>>> e3082e2... add a previous state into app state
             , main_ [] <| showState model
             ]
         ]
@@ -375,13 +370,8 @@ showHeader previousState state artistSlug =
         ShowingArtistLyrics _ ->
             header []
                 [ a
-<<<<<<< HEAD
-                    [ Attr.href "/", Attr.attribute "role" "button", Attr.attribute "aria-label" "Back" ]
+                    [ Attr.href (getBackLink previousState), Attr.attribute "role" "button", Attr.attribute "aria-label" "Back" ]
                     [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ]
-=======
-                    [ href (getBackLink previousState), attribute "role" "button", attribute "aria-label" "Back" ]
-                    [ i [ class "far fa-long-arrow-left artist__back-icon" ] [] ]
->>>>>>> e3082e2... add a previous state into app state
                 ]
 
         ShowingLyric _ ->
