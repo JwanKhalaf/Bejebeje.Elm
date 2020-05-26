@@ -123,7 +123,7 @@ type alias AppModel =
     , apiRootUrl : Url
     , searchTerm : String
     , state : AppState
-    , previousState : Maybe AppState
+    , previousLocation : String
     , activeArtistSlug : Maybe Slug
     }
 
@@ -147,10 +147,10 @@ init flags url key =
                 temp =
                     case parsedUrl of
                         Route.HomeRoute ->
-                            { commands = Cmd.none, state = Home, artistSlug = Nothing }
+                            { commands = Cmd.none, state = Home, artistSlug = Nothing, previousLocation = "/" }
 
                         Route.SearchRoute ->
-                            { commands = focusSearchInput, state = Searching { artists = NotAsked, lyrics = NotAsked }, artistSlug = Nothing }
+                            { commands = focusSearchInput, state = Searching { artists = NotAsked, lyrics = NotAsked }, artistSlug = Nothing, previousLocation = "/" }
 
                         Route.ArtistRoute artist ->
                             { commands =
@@ -160,18 +160,20 @@ init flags url key =
                                     ]
                             , state = ShowingArtistLyrics { artist = Loading, lyrics = Loading }
                             , artistSlug = Just artist
+                            , previousLocation = "/"
                             }
 
                         Route.LyricRoute artist lyric ->
                             { commands = getLyric (toString f.apiRootUrl) artist lyric
                             , state = ShowingLyric Loading
                             , artistSlug = Just artist
+                            , previousLocation = "/"
                             }
 
                         Route.NotFoundRoute ->
-                            { commands = Cmd.none, state = Home, artistSlug = Nothing }
+                            { commands = Cmd.none, state = Home, artistSlug = Nothing, previousLocation = "/" }
             in
-            ( AllOk (AppModel key url f.apiRootUrl "" temp.state Nothing temp.artistSlug), temp.commands )
+            ( AllOk (AppModel key url f.apiRootUrl "" temp.state "" temp.artistSlug), temp.commands )
 
 
 
@@ -222,26 +224,43 @@ update msg model =
             in
             case parsedUrl of
                 Route.HomeRoute ->
-                    ( { model | url = url, previousState = Just model.state, state = Home, searchTerm = "" }, Cmd.none )
+                    ( { model | url = url, previousLocation = "", state = Home, searchTerm = "" }, Cmd.none )
 
                 Route.SearchRoute ->
-                    ( { model | url = url, previousState = Just model.state, state = Searching { artists = NotAsked, lyrics = NotAsked } }, focusSearchInput )
+                    ( { model | url = url, previousLocation = "/", state = Searching { artists = NotAsked, lyrics = NotAsked }, searchTerm = "" }, focusSearchInput )
 
                 Route.ArtistRoute slug ->
-                    ( { model | activeArtistSlug = Just slug, url = url, previousState = Just model.state, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
+                    ( { model
+                        | activeArtistSlug = Just slug
+                        , url = url
+                        , previousLocation = "/search"
+                        , state = ShowingArtistLyrics { artist = Loading, lyrics = Loading }
+                      }
+                    , Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ]
+                    )
+
+                Route.LyricRoute artistSlug lyricSlug ->
+                    ( { model
+                        | activeArtistSlug = Just artistSlug
+                        , url = url
+                        , previousLocation = "/artists/" ++ artistSlug ++ "/lyrics"
+                        , state = ShowingLyric Loading
+                      }
+                    , getLyric (toString model.apiRootUrl) artistSlug lyricSlug
+                    )
 
                 _ ->
                     ( { model | url = url }, Cmd.none )
 
         WantToSearch ->
-            ( { model | previousState = getPreviousStateValue model.previousState model.state, state = Searching { artists = NotAsked, lyrics = NotAsked } }, Nav.pushUrl model.key "/search" )
+            ( { model | previousLocation = "/", state = Searching { artists = NotAsked, lyrics = NotAsked } }, Nav.pushUrl model.key "/search" )
 
         SearchQueryChanged searchTerm ->
             if String.isEmpty searchTerm then
-                ( { model | searchTerm = searchTerm, previousState = getPreviousStateValue model.previousState model.state, state = Home }, Cmd.none )
+                ( { model | searchTerm = searchTerm, previousLocation = "/", state = Home }, Cmd.none )
 
             else
-                ( { model | searchTerm = searchTerm, previousState = getPreviousStateValue model.previousState model.state, state = Searching { artists = Loading, lyrics = Loading } }, Cmd.batch [ searchArtists (toString model.apiRootUrl) searchTerm, searchLyrics (toString model.apiRootUrl) searchTerm ] )
+                ( { model | searchTerm = searchTerm, previousLocation = "/", state = Searching { artists = Loading, lyrics = Loading } }, Cmd.batch [ searchArtists (toString model.apiRootUrl) searchTerm, searchLyrics (toString model.apiRootUrl) searchTerm ] )
 
         RetrievedArtistSearchResults result ->
             let
@@ -258,7 +277,7 @@ update msg model =
                         _ ->
                             model.state
             in
-            ( { model | previousState = getPreviousStateValue model.previousState model.state, state = temp }, Cmd.none )
+            ( { model | previousLocation = "/", state = temp }, Cmd.none )
 
         RetrievedLyricSearchResults result ->
             let
@@ -275,10 +294,10 @@ update msg model =
                         _ ->
                             model.state
             in
-            ( { model | previousState = getPreviousStateValue model.previousState model.state, state = temp }, Cmd.none )
+            ( { model | previousLocation = "/", state = temp }, Cmd.none )
 
         ArtistClicked artist ->
-            ( { model | searchTerm = "", activeArtistSlug = Just artist.primarySlug, previousState = getPreviousStateValue model.previousState model.state, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) artist.primarySlug, getArtist (toString model.apiRootUrl) artist.primarySlug ] )
+            ( { model | searchTerm = "", activeArtistSlug = Just artist.primarySlug, previousLocation = "/search", state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) artist.primarySlug, getArtist (toString model.apiRootUrl) artist.primarySlug ] )
 
         LyricsRetrieved result ->
             let
@@ -315,7 +334,7 @@ update msg model =
             ( { model | state = temp }, Cmd.none )
 
         LyricClicked artistSlug lyricSlug ->
-            ( { model | previousState = Just model.state, state = ShowingLyric Loading, activeArtistSlug = Just artistSlug }, getLyric (toString model.apiRootUrl) artistSlug lyricSlug )
+            ( { model | previousLocation = "/artists/" ++ artistSlug ++ "/lyrics", state = ShowingLyric Loading, activeArtistSlug = Just artistSlug }, getLyric (toString model.apiRootUrl) artistSlug lyricSlug )
 
         LyricRetrieved result ->
             case result of
@@ -363,29 +382,27 @@ view model =
     , body =
         [ div
             [ Attr.class (getClass model.state) ]
-            [ showHeader model.previousState model.state model.activeArtistSlug
+            [ showHeader model.previousLocation model.state model.activeArtistSlug
             , main_ [] <| showState model
             ]
         ]
     }
 
 
-showHeader : Maybe AppState -> AppState -> Maybe Slug -> Html Msg
-showHeader previousState state artistSlug =
+showHeader : String -> AppState -> Maybe Slug -> Html Msg
+showHeader previousLocation state artistSlug =
     case state of
         ShowingArtistLyrics _ ->
-            header []
-                [ a
-                    [ Attr.href (getBackLink previousState), Attr.attribute "role" "button", Attr.attribute "aria-label" "Back" ]
-                    [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ]
-                ]
+            header
+                []
+                [ a [ Attr.href previousLocation, Attr.attribute "role" "button", Attr.attribute "aria-label" "Back" ] [ i [ Attr.class "far fa-long-arrow-left back-icon" ] [] ] ]
 
         ShowingLyric _ ->
             case artistSlug of
                 Just slug ->
                     header
                         []
-                        [ a [ Attr.href ("/artists/" ++ slug ++ "/lyrics") ] [ i [ Attr.class "far fa-long-arrow-left artist__back-icon" ] [] ] ]
+                        [ a [ Attr.href previousLocation, Attr.attribute "role" "button", Attr.attribute "aria-label" "Back" ] [ i [ Attr.class "far fa-long-arrow-left back-icon" ] [] ] ]
 
                 Nothing ->
                     text ""
@@ -398,32 +415,6 @@ showHeader previousState state artistSlug =
                 []
                 [ showLogo
                 ]
-
-
-getBackLink : Maybe AppState -> String
-getBackLink previousState =
-    case previousState of
-        Just state ->
-            case state of
-                ShowingArtistLyrics result ->
-                    case result.artist of
-                        Success a ->
-                            "/artists/" ++ a.primarySlug ++ "/lyrics"
-
-                        _ ->
-                            ""
-
-                Searching _ ->
-                    "/search"
-
-                Home ->
-                    "/"
-
-                _ ->
-                    ""
-
-        Nothing ->
-            ""
 
 
 getClass : AppState -> String
@@ -1011,27 +1002,6 @@ handleJsonResponse decoder response =
 getPrimarySlug : List ArtistSlug -> Maybe ArtistSlug
 getPrimarySlug artistSlugs =
     List.head (List.filter .isPrimary artistSlugs)
-
-
-getPreviousStateValue : Maybe AppState -> AppState -> Maybe AppState
-getPreviousStateValue previousState state =
-    case previousState of
-        Just prevState ->
-            let
-                temp =
-                    Debug.log "prevState" prevState
-
-                tempTwo =
-                    Debug.log "state" state
-            in
-            if isDifferentFromPreviousState prevState state then
-                Just state
-
-            else
-                Just prevState
-
-        Nothing ->
-            Just state
 
 
 isDifferentFromPreviousState : AppState -> AppState -> Bool
