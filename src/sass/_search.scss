@@ -22,12 +22,11 @@
       width: 45px;
       height: 45px;
       border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      text-align: center;
 
       .fas {
         font-size: 1.5rem;
+        line-height: 3rem;
       }
     }
 

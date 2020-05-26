@@ -222,7 +222,10 @@ update msg model =
             in
             case parsedUrl of
                 Route.HomeRoute ->
-                    ( { model | url = url, previousState = Just model.state, state = Home }, Cmd.none )
+                    ( { model | url = url, previousState = Just model.state, state = Home, searchTerm = "" }, Cmd.none )
+
+                Route.SearchRoute ->
+                    ( { model | url = url, previousState = Just model.state, state = Searching { artists = NotAsked, lyrics = NotAsked } }, focusSearchInput )
 
                 Route.ArtistRoute slug ->
                     ( { model | activeArtistSlug = Just slug, url = url, previousState = Just model.state, state = ShowingArtistLyrics { artist = Loading, lyrics = Loading } }, Cmd.batch [ getLyricsForArtist (toString model.apiRootUrl) slug, getArtist (toString model.apiRootUrl) slug ] )
@@ -465,7 +468,7 @@ showState model =
 
                 _ ->
                     text ""
-            , button [ Attr.class "search__cancel-btn", onClick WantToGoHome ] [ i [ Attr.class "fas fa-times" ] [] ]
+            , a [ Attr.class "search__cancel-btn", Attr.href "/" ] [ i [ Attr.class "fas fa-times" ] [] ]
             ]
 
         ShowingArtistLyrics artistResult ->
