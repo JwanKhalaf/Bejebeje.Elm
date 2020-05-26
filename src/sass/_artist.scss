@@ -1,3 +1,9 @@
+.app.artist {
+  main {
+    margin: 0 1em;
+  }
+}
+
 main.artist {
   display: grid;
   justify-content: center;
@@ -27,8 +33,14 @@ main.artist {
   margin: 0 0 0.5em 0;
 }
 
-.artist__back-icon {
+.back-icon {
   @include fontSize(2);
   color: rgba($white, 0.7);
   cursor: pointer;
+  padding: 0 0.5em 0 0;
+}
+
+.back__btn {
+  @include fontSize(1);
+  color: rgba($white, 0.7);
 }

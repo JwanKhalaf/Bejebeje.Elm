@@ -1,8 +1,10 @@
 @import "./reset";
 @import "./mixins";
 @import "./variables";
+@import "./home";
 @import "./search";
 @import "./artist";
+@import "./lyric";
 @import "./lyrics-list";
 
 html {
@@ -12,39 +14,19 @@ html {
 body {
   height: 100%;
   background-color: $dark-grey;
-  position: fixed;
-}
-
-.app {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  min-height: 100%;
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  overflow-y: scroll;
 }
 
 header {
-  margin: 0 0 1em 0;
-  padding: 1.25em 1.25em 0 1.25em;
+  margin: 2.5em 0;
+  padding: 0 1.25em;
 }
 
 .logo {
-  padding: 1.25em;
+  padding: 0 1.25em;
 }
 
 .bb-p {
   color: $white;
-}
-
-main {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0 1.25em 8em 1.25em;
 }
 
 main.search-results {
